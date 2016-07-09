@@ -1,0 +1,73 @@
+import os
+
+import numpy as np
+import scipy.io.wavfile as wavfile
+
+def bools_to_int(b):
+    n = 0
+    for i, v in enumerate(b):
+        if v:
+            n += 1 << i
+    return n
+
+def test_datablock(frame_format):
+    from pyltc.tcgen import Generator
+    g = Generator(
+        use_current_time=False,
+        frame_format=frame_format,
+    )
+    while g.frame.hour <= 24:
+        data = g.get_data_block_array()
+        assert data.size == 80
+        assert np.count_nonzero(data) % 2 == 0
+
+        # drop_frame flag
+        assert data[10] == True
+
+        # reserved zero
+        assert data[58] == False
+
+        v = bools_to_int(data[:4])
+        assert v == g.frame._value % 10
+
+        v = bools_to_int(data[8:10])
+        assert v == g.frame._value // 10
+
+        v = bools_to_int(data[16:20])
+        assert v == g.frame.second.value % 10
+
+        v = bools_to_int(data[24:27])
+        assert v == g.frame.second.value // 10
+
+        v = bools_to_int(data[32:36])
+        assert v == g.frame.minute.value % 10
+
+        v = bools_to_int(data[40:43])
+        assert v == g.frame.minute.value // 10
+
+        v = bools_to_int(data[48:52])
+        assert v == g.frame.hour.value % 10
+
+        v = bools_to_int(data[56:58])
+        assert v == g.frame.hour.value // 10
+
+        g.incr_frame()
+
+def test_wave_write(frame_format, tmpdir):
+    from pyltc.tcgen import AudioGenerator
+    g = AudioGenerator(
+        use_current_time=True,
+        bit_depth=16,
+        frame_format=frame_format,
+    )
+    if g.frame_format.drop_frame:
+        df = 'DF'
+    else:
+        df = 'ND'
+    filename = os.path.join(str(tmpdir), '300frames-{}{}.wav'.format(g.frame_format.rate, df))
+    a = g.generate_frames(300)
+    print('min={}, max={}'.format(a.min(), a.max()))
+    g.sampler.write_wavefile(a, filename)
+    rs, b = wavfile.read(filename)
+    assert rs == g.sample_rate
+    assert np.array_equal(a, b)

@@ -1,0 +1,264 @@
+import time
+import threading
+import datetime
+
+import numpy as np
+
+from pyltc import fields
+from pyltc.frames import Frame, FrameFormat
+from pyltc.audioutils import FrameResampler
+
+class LTCDataBlock(object):
+    def __init__(self, **kwargs):
+        self.generator = kwargs.get('generator')
+        self.fields = {}
+        for cls in fields.Field.iter_subclasses():
+            field = cls(generator=self.generator)
+            self.fields[cls.__name__] = field
+    def get_value(self):
+        v = 0
+        for field in self.fields.values():
+            v += field.get_block_value()
+        return v
+    def get_string(self):
+        v = self.get_value()
+        s = bin(v)
+        if s.count('0') % 2 == 1:
+            v += 1 << fields.ParityBit.start_bit
+            s = bin(v)
+        return s[2:]
+    def get_array(self):
+        a = np.zeros(80, dtype=bool)
+        for field in self.fields.values():
+            field.set_array(a)
+        if np.count_nonzero(a) % 2 == 1:
+            a[fields.ParityBit.start_bit] = True
+        return a
+
+class Generator(object):
+    def __init__(self, **kwargs):
+        frame_format = kwargs.get('frame_format')
+        if not isinstance(frame_format, FrameFormat):
+            frame_format = FrameFormat(**frame_format)
+        self.frame_format = frame_format
+        fkwargs = kwargs.get('frame', {})
+        fkwargs['frame_format'] = frame_format
+        self.frame = Frame(**fkwargs)
+        self.data_block = LTCDataBlock(generator=self)
+    def set_hmsf(self, **kwargs):
+        self.frame.set(**kwargs)
+    def incr_frame(self, value=1):
+        self.frame += value
+    def set_frame_from_dt(self, dt=None, ts=None):
+        if dt is None:
+            if ts is None:
+                ts = time.time()
+            if self.use_utc:
+                dt = datetime.datetime.utcfromtimestamp(ts)
+            else:
+                dt = datetime.datetime.fromtimestamp(ts)
+        self.frame.from_dt(dt)
+    def get_data_block_value(self):
+        return self.data_block.get_value()
+    def get_data_block_string(self):
+        return self.data_block.get_string()
+    def get_data_block_array(self):
+        return self.data_block.get_array()
+
+class FreeRunGenerator(Generator):
+    def __init__(self, **kwargs):
+        super(FreeRunGenerator, self).__init__(**kwargs)
+        self.use_current_time = kwargs.get('use_current_time', True)
+        self.use_utc = kwargs.get('use_utc', False)
+        self.frame_callback = kwargs.get('frame_callback')
+        self.running = threading.Event()
+        self.stopped = threading.Event()
+        self.frame_event = threading.Event()
+        self.run_thread = None
+    def start(self, loop=True):
+        if self.running.is_set():
+            return
+        self.run_thread = TimerThread(self)
+        self.run_thread.start()
+        self.running.wait()
+        if loop:
+            try:
+                while self.running.is_set():
+                    s = self.wait_for_frame()
+                    if s is False:
+                        break
+                    self._frame_callback(s)
+            except KeyboardInterrupt:
+                self.stop()
+    def stop(self):
+        if not self.running.is_set():
+            return
+        self.run_thread.stop()
+        self.stopped.wait()
+        self.run_thread = None
+    def wait_for_frame(self, timeout=None):
+        self.frame_event.wait(timeout)
+        if not self.running.is_set:
+            return False
+        return self.get_data_block_string()
+
+    def _frame_callback(self, s):
+        pass
+
+class AudioGenerator(Generator):
+    def __init__(self, **kwargs):
+        super(AudioGenerator, self).__init__(**kwargs)
+        self.use_current_time = kwargs.get('use_current_time', True)
+        self.use_utc = kwargs.get('use_utc', False)
+        if self.use_current_time:
+            self.set_frame_from_dt()
+        rs = self.sample_rate = kwargs.get('sample_rate', 48000)
+        fr = float(self.frame_format.rate)
+        self.samples_per_frame = rs / fr
+        # s = rs
+        # while True:
+        #     if s / fr == s // fr:
+        #         even_samp = s
+        #         break
+        #     s += rs
+        # self.num_even_samples = even_samp
+        # self.offset_correction_sample = rs / even_samp
+        self.current_sample = 0
+        self.current_offset = 0.
+        self.offset_direction = None
+        self.min_offset = None
+        self.max_offset = 0
+        # if self.samples_per_frame > fr * 100:
+        #     self.offset_direction = 1
+        # elif self.samples_per_frame > fr * 100:
+        #     self.offset_direction = -1
+        # else:
+        #     self.offset_direction = 0
+        self.bit_depth = kwargs.get('bit_depth', 8)
+        self.sampler = FrameResampler(
+            out_sample_rate=self.sample_rate,
+            bit_depth=self.bit_depth,
+            frame_rate=self.frame_format.rate,
+        )
+    def calc_offset(self, samples):
+        if self.offset_direction is None:
+            if self.samples_per_frame > samples.size:
+                self.offset_direction = 1
+            elif self.samples_per_frame < samples.size:
+                self.offset_direction = -1
+            else:
+                self.offset_direction = 0
+        self.current_sample += samples.size
+        if self.offset_direction == 1:
+            self.current_offset += self.samples_per_frame - samples.size
+        elif self.offset_direction == -1:
+            self.current_offset += samples.size - self.samples_per_frame
+        if self.min_offset is None or self.current_offset < self.min_offset:
+            self.min_offset = self.current_offset
+        if self.current_offset > self.max_offset:
+            self.max_offset = self.current_offset
+    def generate_frame(self, only_zero=False):
+        if only_zero:
+            a = np.zeros(80, dtype=bool)
+        else:
+            a = self.get_data_block_array()
+        samples = self.sampler.generate_samples(a)
+        self.calc_offset(samples)
+        if self.current_offset >= 1:
+            if self.offset_direction == 1:
+                offset_samples = np.array([samples[-1]] * int(self.current_offset))
+                samples = np.concatenate((samples, offset_samples))
+            else:
+                i = int(self.current_offset)
+                samples = samples[:-i]
+            self.current_offset -= int(self.current_offset)
+        return samples
+    def generate_frames(self, num_frames):
+        a = None
+        for i in range(num_frames):
+            if a is None:
+                a = self.generate_frame()
+            else:
+                a = np.concatenate((a, self.generate_frame()))
+            self.incr_frame()
+        return a
+
+
+class TimerThread(threading.Thread):
+    def __init__(self, generator):
+        super(TimerThread, self).__init__()
+        self.generator = generator
+    def run(self):
+        g = self.generator
+        fr = float(g.frame_format.rate)
+        interval = 1 / fr
+        start_ts = self.start_time = time.time()
+        last_ts = start_ts
+        if g.use_current_time:
+            g.set_frame_from_dt(ts=start_ts)
+        g.running.set()
+        while g.running.is_set():
+            time.sleep(interval)
+            if g.use_current_time:
+                g.set_frame_from_dt()
+            else:
+                g.incr_frame()
+            g.frame_event.set()
+        g.stopped.set()
+    def stop(self):
+        g = self.generator
+        g.running.clear()
+        g.frame_event.set()
+        g.stopped.set()
+
+
+def build_gen(**kwargs):
+    kwargs.setdefault('frame_format', {'rate':29.97, 'drop_enabled':True})
+    return AudioGenerator(**kwargs)
+
+def time_test(num_frames=30, **kwargs):
+    times = []
+    g = build_gen(**kwargs)
+    for i in range(num_frames):
+        start_ts = time.time()
+        a = g.generate_frame()
+        g.incr_frame()
+        end_ts = time.time()
+        times.append(end_ts - start_ts)
+    frame_time = 1 / float(g.frame_format.rate)
+    slowtimes = [t for t in times if t >= frame_time]
+    print('min={}, max={}'.format(min(times), max(times)))
+    if len(slowtimes):
+        print('was slow {} times: {}'.format(len(slowtimes), slowtimes))
+    return times
+
+def plot_wave(**kwargs):
+    import matplotlib
+    matplotlib.use('Qt4Agg')
+    import matplotlib.pyplot as plt
+    g = build_gen(**kwargs)
+    a = g.generate_frame(only_zero=True)
+    g.current_offset = 0.
+    b = g.generate_frame()
+    g.current_offset = 0.
+    g.incr_frame()
+    c = g.generate_frames(1)
+    rs = float(g.sample_rate)
+    t = np.arange(0, a.size / rs, 1 / rs)
+    t2 = np.arange(0, b.size / rs, 1/ rs)
+    t3 = np.arange(0, c.size / rs, 1/ rs)
+    print(a.size, b.size, c.size)
+    ax1 = plt.subplot(3, 1, 1)
+    plt.plot(t, a)
+    plt.grid()
+    ax2 = plt.subplot(3, 1, 2, sharex=ax1, sharey=ax1)
+    plt.grid()
+    plt.plot(t2, b)
+    ax3 = plt.subplot(3, 1, 3, sharex=ax1, sharey=ax1)
+    plt.grid()
+    plt.plot(t3, c)
+    plt.show()
+    return t, a
+
+if __name__ == '__main__':
+    t, a = plot_wave()
