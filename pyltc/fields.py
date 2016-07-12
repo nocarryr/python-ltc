@@ -71,13 +71,13 @@ class HourUnits(Field):
     start_bit = 48
     bit_length = 4
     def get_value(self):
-        return self.generator.frame.minute.value % 10
+        return self.generator.frame.hour.value % 10
 
 class HourTens(Field):
     start_bit = 56
     bit_length = 2
     def get_value(self):
-        return self.generator.frame.minute.value // 10
+        return self.generator.frame.hour.value // 10
 
 class DropFlag(Field):
     start_bit = 10
