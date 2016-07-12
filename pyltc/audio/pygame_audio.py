@@ -7,6 +7,7 @@ from pyltc.audio.base import AudioBackend
 from pyltc.tcgen import AudioGenerator
 
 class PygameAudio(AudioBackend):
+    frames_per_queue = 10
     def __init__(self, **kwargs):
         super(PygameAudio, self).__init__(**kwargs)
         self.use_loop = kwargs.get('use_loop', True)
@@ -16,6 +17,7 @@ class PygameAudio(AudioBackend):
             frequency=self.sample_rate,
             size=self.bit_depth * -1,
             channels=1,
+            buffer=1024,
         )
         self.sounds_in_queue = 0
         self.channel = mixer.find_channel()
