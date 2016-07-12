@@ -26,6 +26,7 @@ class AudioBackend(object):
     def start(self):
         if self.running:
             return
+        self.generator.set_frame_from_dt()
         if not self.initialized:
             self.init_backend()
         self.running = True
