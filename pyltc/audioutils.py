@@ -40,15 +40,15 @@ class FrameResampler(Resampler):
     def __init__(self, **kwargs):
         self.frame_rate = float(kwargs.get('frame_rate'))
         self.frame_samples = int(self.frame_rate * 100)
-        kwargs.setdefault('in_sample_rate', kwargs.get('out_sample_rate'))
+        out_sample_rate = kwargs.get('out_sample_rate')
+        kwargs.setdefault('in_sample_rate', int(out_sample_rate / self.frame_rate))
         super(FrameResampler, self).__init__(**kwargs)
         self.data_block_sampler = LTCDataBlockSampler(
-            out_sample_rate=self.frame_samples,
+            out_sample_rate=self.in_sample_rate,
             bit_depth=self.bit_depth,
         )
     def generate_samples(self, data):
-        a = self.data_block_sampler.generate_samples(data)
-        return self.resample(a)
+        return self.data_block_sampler.generate_samples(data)
 
 class LTCDataBlockSampler(Resampler):
     def __init__(self, **kwargs):
@@ -74,4 +74,4 @@ class LTCDataBlockSampler(Resampler):
         a = np.repeat(a, self.in_periods.size / 160)
         y_max = self.y_max / 2
         a *= y_max
-        return a
+        return self.resample(a)

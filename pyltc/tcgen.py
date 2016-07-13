@@ -1,6 +1,7 @@
 import time
 import threading
 import datetime
+from fractions import Fraction
 
 import numpy as np
 
@@ -113,27 +114,16 @@ class AudioGenerator(Generator):
         if self.use_current_time:
             self.set_frame_from_dt()
         rs = self.sample_rate = kwargs.get('sample_rate', 48000)
-        fr = float(self.frame_format.rate)
-        self.samples_per_frame = rs / fr
-        # s = rs
-        # while True:
-        #     if s / fr == s // fr:
-        #         even_samp = s
-        #         break
-        #     s += rs
-        # self.num_even_samples = even_samp
-        # self.offset_correction_sample = rs / even_samp
-        self.current_sample = 0
-        self.current_offset = 0.
-        self.offset_direction = None
-        self.min_offset = None
-        self.max_offset = 0
-        # if self.samples_per_frame > fr * 100:
-        #     self.offset_direction = 1
-        # elif self.samples_per_frame > fr * 100:
-        #     self.offset_direction = -1
-        # else:
-        #     self.offset_direction = 0
+        fr = self.frame_format.rate
+        if fr == 29.97:
+            fr = Fraction(30000, 1001)
+        self.samples_per_frame = Fraction(rs, fr)
+        if int(self.samples_per_frame) == float(self.samples_per_frame):
+            self.even_samples = True
+        else:
+            self.even_samples = False
+            self.num_samples = 0
+            self.frame_count = 0
         self.bit_depth = kwargs.get('bit_depth', 8)
         self.sampler = FrameResampler(
             out_sample_rate=self.sample_rate,
@@ -141,37 +131,29 @@ class AudioGenerator(Generator):
             frame_rate=self.frame_format.rate,
         )
     def calc_offset(self, samples):
-        if self.offset_direction is None:
-            if self.samples_per_frame > samples.size:
-                self.offset_direction = 1
-            elif self.samples_per_frame < samples.size:
-                self.offset_direction = -1
-            else:
-                self.offset_direction = 0
-        self.current_sample += samples.size
-        if self.offset_direction == 1:
-            self.current_offset += self.samples_per_frame - samples.size
-        elif self.offset_direction == -1:
-            self.current_offset += samples.size - self.samples_per_frame
-        if self.min_offset is None or self.current_offset < self.min_offset:
-            self.min_offset = self.current_offset
-        if self.current_offset > self.max_offset:
-            self.max_offset = self.current_offset
+        self.num_samples += samples.size
+        self.frame_count += 1
+        num_samples = self.samples_per_frame * self.frame_count
+        if float(num_samples) == int(num_samples):
+            offset = int(num_samples - self.num_samples)
+            self.num_samples += offset
+        else:
+            offset = 0
+        return offset
     def generate_frame(self, only_zero=False):
         if only_zero:
             a = np.zeros(80, dtype=bool)
         else:
             a = self.get_data_block_array()
         samples = self.sampler.generate_samples(a)
-        self.calc_offset(samples)
-        if self.current_offset >= 1:
-            if self.offset_direction == 1:
-                offset_samples = np.array([samples[-1]] * int(self.current_offset))
+        if not self.even_samples:
+            offset = self.calc_offset(samples)
+            if offset > 0:
+                offset_samples = np.array([samples[-1]] * offset)
                 samples = np.concatenate((samples, offset_samples))
-            else:
+            elif offset < 0:
                 i = int(self.current_offset)
-                samples = samples[:-i]
-            self.current_offset -= int(self.current_offset)
+                samples = samples[:-offset]
         return samples
     def generate_frames(self, num_frames):
         a = None
