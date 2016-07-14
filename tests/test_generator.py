@@ -16,7 +16,7 @@ def test_datablock(frame_format):
         use_current_time=False,
         frame_format=frame_format,
     )
-    while g.frame.hour <= 24:
+    while g.frame.hour.value < 1:
         data = g.get_data_block_array()
         assert data.size == 80
         assert np.count_nonzero(data) % 2 == 0
