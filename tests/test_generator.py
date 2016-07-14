@@ -22,7 +22,7 @@ def test_datablock(frame_format):
         assert np.count_nonzero(data) % 2 == 0
 
         # drop_frame flag
-        assert data[10] == True
+        assert data[10] == frame_format.get('drop_frame', False)
 
         # reserved zero
         assert data[58] == False
