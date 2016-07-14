@@ -13,9 +13,9 @@ class Resampler(object):
         self.in_periods = np.arange(0, 1, 1 / float(self.in_sample_rate))
         self.out_periods = np.arange(0, 1, 1 / float(self.out_sample_rate))
         self.nans = np.full(self.in_periods.size, np.nan)
-        self.bit_depth = kwargs.get('bit_depth', 16)
-        self.dtype = np.dtype('>i{}'.format(self.bit_depth / 8))
-        self.y_max = (1 << self.bit_depth) / 2 - 1
+        self.bit_depth = int(kwargs.get('bit_depth', 16))
+        self.dtype = np.dtype('>i{}'.format(int(self.bit_depth / 8)))
+        self.y_max = int((1 << self.bit_depth) / 2 - 1)
         self.y_min = self.y_max * -1
     def resample(self, a):
         if self.in_sample_rate == self.out_sample_rate:
@@ -72,6 +72,6 @@ class LTCDataBlockSampler(Resampler):
             y = next(y_iter)
             i += 2
         a = np.repeat(a, self.in_periods.size / 160)
-        y_max = self.y_max / 2
+        y_max = int(self.y_max / 2)
         a *= y_max
         return self.resample(a)
