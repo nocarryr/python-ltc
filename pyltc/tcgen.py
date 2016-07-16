@@ -124,10 +124,14 @@ class AudioGenerator(Generator):
             self.even_samples = False
             self.num_samples = 0
             self.frame_count = 0
+        self.use_float_samples = kwargs.get('use_float_samples', False)
         self.bit_depth = kwargs.get('bit_depth', 8)
+        self.dtype = kwargs.get('dtype')
         self.sampler = FrameResampler(
             out_sample_rate=self.sample_rate,
+            use_float_samples=self.use_float_samples,
             bit_depth=self.bit_depth,
+            dtype=self.dtype,
             frame_rate=self.frame_format.rate,
         )
     def calc_offset(self, samples):

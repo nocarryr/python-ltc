@@ -14,9 +14,16 @@ class Resampler(object):
         self.out_periods = np.arange(0, 1, 1 / float(self.out_sample_rate))
         self.nans = np.full(self.in_periods.size, np.nan)
         self.bit_depth = int(kwargs.get('bit_depth', 16))
-        self.dtype = np.dtype('>i{}'.format(int(self.bit_depth / 8)))
-        self.y_max = int((1 << self.bit_depth) / 2 - 1)
-        self.y_min = self.y_max * -1
+        self.use_float_samples = kwargs.get('use_float_samples', False)
+        self.dtype = kwargs.get('dtype')
+        if self.dtype is None:
+            self.dtype = np.dtype('>i{}'.format(int(self.bit_depth / 8)))
+        if self.use_float_samples:
+            self.y_max = 1.
+            self.y_min = -1.
+        else:
+            self.y_max = int((1 << self.bit_depth) / 2 - 1)
+            self.y_min = self.y_max * -1
     def resample(self, a):
         if self.in_sample_rate == self.out_sample_rate:
             return a
@@ -48,6 +55,8 @@ class FrameResampler(Resampler):
         self.data_block_sampler = LTCDataBlockSampler(
             out_sample_rate=self.in_sample_rate,
             bit_depth=self.bit_depth,
+            use_float_samples=self.use_float_samples,
+            dtype=self.dtype,
         )
     def generate_samples(self, data):
         return self.data_block_sampler.generate_samples(data)
@@ -58,9 +67,13 @@ class LTCDataBlockSampler(Resampler):
         super(LTCDataBlockSampler, self).__init__(**kwargs)
     def generate_samples(self, data):
         def iter_yvals():
+            if self.use_float_samples:
+                yvals = [-1., 1.]
+            else:
+                yvals = [-1, 1]
             while True:
-                yield -1
-                yield 1
+                yield yvals[0]
+                yield yvals[1]
         t = self.in_periods
         a = np.zeros(160, dtype=self.dtype)
         y_iter = iter_yvals()
@@ -74,6 +87,7 @@ class LTCDataBlockSampler(Resampler):
             y = next(y_iter)
             i += 2
         a = np.repeat(a, self.in_periods.size / 160)
-        y_max = int(self.y_max / 2)
-        a *= y_max
+        if not self.use_float_samples:
+            y_max = int(self.y_max / 2)
+            a *= y_max
         return self.resample(a)
