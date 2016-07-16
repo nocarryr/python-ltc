@@ -32,6 +32,8 @@ class Resampler(object):
             r = r[~np.isnan(r)]
         if r.dtype is not self.dtype:
             r = np.asarray(r, dtype=self.dtype)
+        if r[-1] == 0:
+            r[-1] = r[-2]
         return r
     def write_wavefile(self, a, filename):
         wavfile.write(filename, self.out_sample_rate, a)
