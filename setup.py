@@ -5,7 +5,7 @@ setup(
     version = '0.0.1',
     author = 'Matthew Reid',
     author_email = 'matt@nomadic-recording.com',
-    description = 'Timecode Tools',
+    description = 'Tools for working with LTC (Linear Timecode)',
     packages=['pyltc'],
     include_package_data=True,
     install_requires=['numpy', 'scipy'],
@@ -22,5 +22,8 @@ setup(
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
+        'Topic :: Multimedia',
+        'Topic :: Multimedia :: Sound/Audio',
+        'Topic :: Multimedia :: Video',
     ],
 )
