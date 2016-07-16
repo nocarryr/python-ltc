@@ -8,6 +8,7 @@ addons:
     packages:
       - pandoc
 install:
+  - pip install -U pip
   - pip install -U pytest pytest-cov coveralls
   - pip install -e .
 script:
