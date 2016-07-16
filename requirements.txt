@@ -1,0 +1,4 @@
+hg+https://bitbucket.org/pygame/pygame#egg=Pygame
+numpy
+scipy
+JACK-Client

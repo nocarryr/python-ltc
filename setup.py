@@ -8,6 +8,7 @@ setup(
     description = 'Timecode Tools',
     packages=['pyltc'],
     include_package_data=True,
+    install_requires=['numpy', 'scipy'],
     setup_requires=['setuptools-markdown'],
     long_description_markdown_filename='README.md',
     classifiers = [
