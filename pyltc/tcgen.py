@@ -159,14 +159,15 @@ class AudioGenerator(Generator):
                 i = int(self.current_offset)
                 samples = samples[:-offset]
         return samples
-    def generate_frames(self, num_frames):
+    def generate_frames(self, num_frames, only_zero=False):
         a = None
         for i in range(num_frames):
             if a is None:
-                a = self.generate_frame()
+                a = self.generate_frame(only_zero)
             else:
-                a = np.concatenate((a, self.generate_frame()))
-            self.incr_frame()
+                a = np.concatenate((a, self.generate_frame(only_zero)))
+            if only_zero is False:
+                self.incr_frame()
         return a
 
 
@@ -223,12 +224,12 @@ def plot_wave(**kwargs):
     matplotlib.use('Qt4Agg')
     import matplotlib.pyplot as plt
     g = build_gen(**kwargs)
-    a = g.generate_frame(only_zero=True)
+    a = g.generate_frames(2, only_zero=True)
     g.current_offset = 0.
-    b = g.generate_frame()
+    b = g.generate_frames(2)
     g.current_offset = 0.
     g.incr_frame()
-    c = g.generate_frames(1)
+    c = g.generate_frames(2)
     rs = float(g.sample_rate)
     t = np.arange(0, a.size / rs, 1 / rs)
     t2 = np.arange(0, b.size / rs, 1/ rs)
