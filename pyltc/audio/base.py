@@ -23,6 +23,8 @@ class AudioBackend(object):
         if not len(self.queue):
             self.fill_buffer()
         return self.queue.popleft()
+    def set_frame_from_dt(self, dt=None, ts=None):
+        self.generator.set_frame_from_dt(dt=dt, ts=ts)
     def start(self):
         if self.running:
             return

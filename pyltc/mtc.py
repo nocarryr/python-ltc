@@ -35,6 +35,9 @@ class MTCField(object):
 
 class Frame(MTCField):
     index = [0, 1]
+    def get_value(self):
+        value = getattr(self, '_value', 0)
+        return value + 2
 
 class Second(MTCField):
     index = [2, 3]

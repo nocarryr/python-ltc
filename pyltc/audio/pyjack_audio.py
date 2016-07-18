@@ -112,17 +112,22 @@ class JackAudio(AudioBackend):
     def __init__(self, **kwargs):
         super(JackAudio, self).__init__(**kwargs)
         self.buffer = self.build_buffer()
+        self.buffer_time_offset = self.calc_buffer_time_offset()
         self.mtc_buffer = MTCBuffer()
         self.mtc_datablock = MTCDataBlock()
         self.data_waiting = None
         self.process_timestamp = None
         self.buffer_lock = threading.Lock()
-    def calc_time_offset(self):
+    def calc_frame_time_offset(self):
         p_t = self.process_timestamp
         if p_t is None:
             return None
         t = self.client.frame_time
         return t - p_t
+    def calc_buffer_time_offset(self):
+        rs = float(self.sample_rate)
+        buf_len = self.block_size * self.queue_length
+        return buf_len / rs
     def build_buffer(self):
         return SampleBuffer(backend=self)
     def fill_buffer(self):
@@ -143,6 +148,11 @@ class JackAudio(AudioBackend):
             if not self.buffer.can_write(a):
                 self.data_waiting = a
                 break
+    def set_frame_from_dt(self, dt=None, ts=None):
+        if dt is None and ts is None:
+            ts = time.time()
+            ts += self.buffer_time_offset
+        super(JackAudio, self).set_frame_from_dt(dt=dt, ts=ts)
     def init_backend(self):
         self.buffer_thread = BufferThread(backend=self)
         self.mtc_thread = MTCThread(backend=self)
@@ -194,6 +204,7 @@ class JackAudio(AudioBackend):
             self.buffer.clear()
             self.block_size = size
             self.buffer = self.build_buffer()
+            self.buffer_time_offset = self.calc_buffer_time_offset()
             self.data_waiting = None
         self.buffer_thread.idle.wait()
     def jack_process_callback(self, size):
@@ -227,7 +238,7 @@ class BufferThread(threading.Thread):
         self.running.set()
         self.ready.wait()
         print('buffer_thread ready')
-        self.backend.generator.set_frame_from_dt()
+        self.backend.set_frame_from_dt()
         with self.backend.buffer_lock:
             self.backend.fill_buffer()
         print('buffer filled')
