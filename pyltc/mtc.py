@@ -2,6 +2,16 @@
 class MTCField(object):
     def __init__(self, **kwargs):
         self.value = kwargs.get('value', 0)
+    @property
+    def value(self):
+        return self.get_value()
+    @value.setter
+    def value(self, value):
+        self.set_value(value)
+    def get_value(self):
+        return getattr(self, '_value', 0)
+    def set_value(self, value):
+        self._value = value
     @classmethod
     def iter_subclasses(cls):
         for _cls in cls.__subclasses__():
@@ -48,6 +58,16 @@ class FrameRate(MTCField):
     def __init__(self, **kwargs):
         self.rate = kwargs.get('rate')
         self.drop_frame = kwargs.get('drop_frame', False)
+    def get_value(self):
+        return {k:getattr(self, k) for k in ['rate', 'drop_frame']}
+    def set_value(self, value):
+        if isinstance(value, list):
+            self.rate, self.drop_frame = value
+        elif isinstance(value, dict):
+            for key in ['rate', 'drop_frame']:
+                v = value.get(key)
+                if v is not None:
+                    setattr(self, key, v)
     def decode(self, values):
         for value in values:
             index = value >> 4
