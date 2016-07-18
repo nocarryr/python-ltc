@@ -1,11 +1,14 @@
 import threading
 import time
+import array
+import collections
 
 import numpy as np
 import jack
 
 from pyltc.audio.base import AudioBackend
 from pyltc.tcgen import AudioGenerator
+from pyltc.mtc import MTCDataBlock
 
 class SampleBuffer(object):
     def __init__(self, **kwargs):
@@ -44,12 +47,73 @@ class SampleBuffer(object):
     def __len__(self):
         return self.buffer.write_space
 
+class MTCBuffer(object):
+    def __init__(self, **kwargs):
+        #self.buffer = jack.RingBuffer(512)
+        self.buffer = collections.deque()
+        self.current_quarter_frame = []
+    def write(self, data):
+        a = array.array('B')
+        a.fromstring(data)
+        self.buffer.append(a)
+    def read_all(self):
+        a = array.array('B')
+        while len(self.buffer):
+            a.extend(self.buffer.popleft())
+        return a
+    def get_quarter_frames(self):
+        if not len(self.buffer):
+            return [None]
+        qf = self.current_quarter_frame
+        a = self.read_all()
+        if len(qf) and qf[-1] == 0xF1:
+            a.insert(0, 0xF1)
+            qf = qf[:-1]
+        qf.extend(self.filter_mtc_data(a))
+        self.current_quarter_frame = qf
+        if len(qf) < 16:
+            return [None]
+        elif len(qf) == 16:
+            self.current_quarter_frame = []
+            return [qf]
+        else:
+            qfs = []
+            while len(qf) >= 16:
+                qfs.append(qf[:16])
+                qf = qf[16:]
+            self.current_quarter_frame = qf
+            return qfs
+    def to_array(self, buffer):
+        a = array.array('B')
+        a.fromstring(buffer)
+        return a
+    def filter_mtc_data(self, data):
+        data = data.tolist()
+        l = []
+        i = 0
+        while True:
+            try:
+                i = data.index(0xF1, i)
+            except ValueError:
+                break
+            h = data[i]
+            try:
+                v = data[i+1]
+            except IndexError:
+                l.append(h)
+                break
+            l.extend([h, v])
+            i += 1
+        return l
+
 class JackAudio(AudioBackend):
     block_size = 1024
     queue_length = 32
     def __init__(self, **kwargs):
         super(JackAudio, self).__init__(**kwargs)
         self.buffer = self.build_buffer()
+        self.mtc_buffer = MTCBuffer()
+        self.mtc_datablock = MTCDataBlock()
         self.data_waiting = None
         self.process_timestamp = None
         self.buffer_lock = threading.Lock()
@@ -81,22 +145,31 @@ class JackAudio(AudioBackend):
                 break
     def init_backend(self):
         self.buffer_thread = BufferThread(backend=self)
+        self.mtc_thread = MTCThread(backend=self)
         c = self.client = jack.Client('LTCGenerator')
         c.set_blocksize_callback(self.on_jack_blocksize)
         c.blocksize = self.block_size
         o = self.outport = c.outports.register('output_1')
+        m = self.midiport = c.midi_inports.register('input')
         c.set_process_callback(self.jack_process_callback)
     def _start(self):
         self.buffer_thread.start()
         self.buffer_thread.running.wait()
+        self.mtc_thread.start()
+        self.mtc_thread.running.wait()
         self.client.activate()
         self.client.connect(self.outport, 'system:playback_1')
         self.client.connect(self.outport, 'system:playback_2')
+        self.client.connect('system:midi_capture_1', self.midiport)
     def _stop(self):
         self.buffer_thread.stop()
         self.buffer_thread = None
+        self.mtc_thread.stop()
+        self.mtc_thread = None
         self.outport.disconnect()
         self.outport.unregister()
+        self.midiport.disconnect()
+        self.midiport.unregister()
         self.client.deactivate()
         self.client.close()
     def run_loop(self):
@@ -128,6 +201,17 @@ class JackAudio(AudioBackend):
         self.process_timestamp = self.client.last_frame_time
         for o in self.client.outports:
             o.get_buffer()[:] = a
+        m = self.client.midi_inports[0]
+        for offset, data in m.incoming_midi_events():
+            self.mtc_buffer.write(data)
+    def get_mtc_data(self):
+        s = self.mtc_datablock.second.value
+        for qf in self.mtc_buffer.get_quarter_frames():
+            if qf is None:
+                continue
+            self.mtc_datablock.decode(qf)
+        if self.mtc_datablock.second.value != s:
+            print(str(self.mtc_datablock))
 
 class BufferThread(threading.Thread):
     def __init__(self, **kwargs):
@@ -160,6 +244,20 @@ class BufferThread(threading.Thread):
         self.running.clear()
         self.need_data.set()
         self.stopped.wait()
+
+class MTCThread(BufferThread):
+    def __init__(self, **kwargs):
+        super(MTCThread, self).__init__(**kwargs)
+        self.wait_timeout = .1
+        self.data_block = MTCDataBlock()
+    def run(self):
+        self.running.set()
+        while self.running.is_set():
+            self.need_data.wait(self.wait_timeout)
+            if not self.running.is_set():
+                break
+            self.backend.get_mtc_data()
+        self.stopped.set()
 
 def main(**kwargs):
     generator = AudioGenerator(
