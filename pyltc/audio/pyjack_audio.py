@@ -210,7 +210,8 @@ class JackAudio(AudioBackend):
         self.set_jack_transport()
         self.client.transport_start()
         self.buffer_thread.ready.set()
-    def run_loop(self):
+    def run_loop(self, loop_time=None):
+        start_ts = time.time()
         try:
             while True:
                 if not self.jack_ready:
@@ -218,6 +219,10 @@ class JackAudio(AudioBackend):
                     self.check_jack_ready()
                 else:
                     time.sleep(1)
+                    if loop_time is not None:
+                        now = time.time()
+                        if now - start_ts >= loop_time:
+                            break
         except KeyboardInterrupt:
             self.stop()
         self.stop()
