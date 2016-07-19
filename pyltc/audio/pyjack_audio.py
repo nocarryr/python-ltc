@@ -113,6 +113,7 @@ class JackAudio(AudioBackend):
     def __init__(self, **kwargs):
         self._jack_ready = False
         super(JackAudio, self).__init__(**kwargs)
+        self.enable_mtc = kwargs.get('enable_mtc', True)
         self.buffer = self.build_buffer()
         self.buffer_time_offset = self.calc_buffer_time_offset()
         self.mtc_buffer = MTCBuffer()
@@ -169,20 +170,24 @@ class JackAudio(AudioBackend):
         self.buffer_thread = BufferThread(backend=self)
         self.mtc_thread = MTCThread(backend=self)
         c = self.client = jack.Client('LTCGenerator')
+        if not len(c.get_ports(is_midi=True, is_physical=True)):
+            self.enable_mtc = False
         c.set_blocksize_callback(self.on_jack_blocksize)
         c.blocksize = self.block_size
         o = self.outport = c.outports.register('output_1')
-        m = self.midiport = c.midi_inports.register('input')
+        if self.enable_mtc:
+            m = self.midiport = c.midi_inports.register('input')
         c.set_process_callback(self.jack_process_callback)
     def _start(self):
         self.buffer_thread.start()
         self.buffer_thread.running.wait()
-        self.mtc_thread.start()
-        self.mtc_thread.running.wait()
         self.client.activate()
         self.client.connect(self.outport, 'system:playback_1')
         self.client.connect(self.outport, 'system:playback_2')
-        self.client.connect('system:midi_capture_1', self.midiport)
+        if self.enable_mtc:
+            self.client.connect('system:midi_capture_1', self.midiport)
+        self.mtc_thread.start()
+        self.mtc_thread.running.wait()
     def _stop(self):
         self.buffer_thread.stop()
         self.buffer_thread = None
@@ -190,8 +195,9 @@ class JackAudio(AudioBackend):
         self.mtc_thread = None
         self.outport.disconnect()
         self.outport.unregister()
-        self.midiport.disconnect()
-        self.midiport.unregister()
+        if self.enable_mtc:
+            self.midiport.disconnect()
+            self.midiport.unregister()
         self.client.transport_stop()
         self.client.deactivate()
         self.client.close()
@@ -243,6 +249,8 @@ class JackAudio(AudioBackend):
         self.process_timestamp = self.client.last_frame_time
         for o in self.client.outports:
             o.get_buffer()[:] = a
+        if not self.enable_mtc:
+            return
         m = self.client.midi_inports[0]
         for offset, data in m.incoming_midi_events():
             self.mtc_buffer.write(data)
@@ -289,9 +297,12 @@ class BufferThread(threading.Thread):
 class MTCThread(BufferThread):
     def __init__(self, **kwargs):
         super(MTCThread, self).__init__(**kwargs)
-        self.wait_timeout = .1
         self.data_block = MTCDataBlock()
     def run(self):
+        if self.backend.enable_mtc:
+            self.wait_timeout = .1
+        else:
+            self.wait_timeout = None
         self.running.set()
         while self.running.is_set():
             self.need_data.wait(self.wait_timeout)
