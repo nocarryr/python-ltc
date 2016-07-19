@@ -2,6 +2,7 @@ import threading
 import time
 import array
 import collections
+import datetime
 
 import numpy as np
 import jack
@@ -180,6 +181,7 @@ class JackAudio(AudioBackend):
         self.outport.unregister()
         self.midiport.disconnect()
         self.midiport.unregister()
+        self.client.transport_stop()
         self.client.deactivate()
         self.client.close()
     def run_loop(self):
@@ -190,12 +192,26 @@ class JackAudio(AudioBackend):
                     time.sleep(.1)
                     if self.process_timestamp is not None:
                         gen_ready = True
+                        self.set_jack_transport()
+                        self.client.transport_start()
                         self.buffer_thread.ready.set()
                 else:
                     time.sleep(1)
         except KeyboardInterrupt:
             self.stop()
         self.stop()
+    def set_jack_transport(self):
+        rs = self.sample_rate
+        sample_offset = self.block_size * 2
+        ts_offset = sample_offset / float(rs)
+        midnight = datetime.datetime.combine(datetime.date.today(), datetime.time())
+        now = datetime.datetime.now()
+        td = now - midnight
+        ts = td.total_seconds()
+        frame = int(round(rs * ts) + sample_offset)
+        self.client.transport_frame = frame
+        now += datetime.timedelta(seconds=ts_offset + self.buffer_time_offset)
+        self.set_frame_from_dt(dt=now)
     def on_jack_blocksize(self, size):
         if size == self.block_size:
             return
@@ -238,7 +254,6 @@ class BufferThread(threading.Thread):
         self.running.set()
         self.ready.wait()
         print('buffer_thread ready')
-        self.backend.set_frame_from_dt()
         with self.backend.buffer_lock:
             self.backend.fill_buffer()
         print('buffer filled')
