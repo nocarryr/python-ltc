@@ -326,7 +326,8 @@ def main(**kwargs):
     )
     aud = JackAudio(generator=generator)
     aud.start()
-    aud.run_loop()
+    aud.run_loop(kwargs.get('loop_time'))
+    return aud
 
 if __name__ == '__main__':
     main()
