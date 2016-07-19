@@ -111,6 +111,7 @@ class JackAudio(AudioBackend):
     block_size = 1024
     queue_length = 32
     def __init__(self, **kwargs):
+        self._jack_ready = False
         super(JackAudio, self).__init__(**kwargs)
         self.buffer = self.build_buffer()
         self.buffer_time_offset = self.calc_buffer_time_offset()
@@ -119,6 +120,16 @@ class JackAudio(AudioBackend):
         self.data_waiting = None
         self.process_timestamp = None
         self.buffer_lock = threading.Lock()
+    @property
+    def jack_ready(self):
+        return self._jack_ready
+    @jack_ready.setter
+    def jack_ready(self, value):
+        if value == self._jack_ready:
+            return
+        self._jack_ready = value
+        if value:
+            self.on_jack_ready()
     def calc_frame_time_offset(self):
         p_t = self.process_timestamp
         if p_t is None:
@@ -184,17 +195,21 @@ class JackAudio(AudioBackend):
         self.client.transport_stop()
         self.client.deactivate()
         self.client.close()
+    def check_jack_ready(self):
+        if self.process_timestamp is not None:
+            self.jack_ready = True
+            return True
+        return False
+    def on_jack_ready(self):
+        self.set_jack_transport()
+        self.client.transport_start()
+        self.buffer_thread.ready.set()
     def run_loop(self):
-        gen_ready = False
         try:
             while True:
-                if not gen_ready:
+                if not self.jack_ready:
                     time.sleep(.1)
-                    if self.process_timestamp is not None:
-                        gen_ready = True
-                        self.set_jack_transport()
-                        self.client.transport_start()
-                        self.buffer_thread.ready.set()
+                    self.check_jack_ready()
                 else:
                     time.sleep(1)
         except KeyboardInterrupt:
