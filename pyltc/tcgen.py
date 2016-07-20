@@ -9,32 +9,6 @@ from pyltc import fields
 from pyltc.frames import Frame, FrameFormat
 from pyltc.audioutils import FrameResampler
 
-class LTCDataBlock(object):
-    def __init__(self, **kwargs):
-        self.generator = kwargs.get('generator')
-        self.fields = {}
-        for cls in fields.Field.iter_subclasses():
-            field = cls(generator=self.generator)
-            self.fields[cls.__name__] = field
-    def get_value(self):
-        v = 0
-        for field in self.fields.values():
-            v += field.get_block_value()
-        return v
-    def get_string(self):
-        v = self.get_value()
-        s = bin(v)
-        if s.count('0') % 2 == 1:
-            v += 1 << fields.ParityBit.start_bit
-            s = bin(v)
-        return s[2:]
-    def get_array(self):
-        a = np.zeros(80, dtype=bool)
-        for field in self.fields.values():
-            field.set_array(a)
-        if np.count_nonzero(a) % 2 == 1:
-            a[fields.ParityBit.start_bit] = True
-        return a
 
 class Generator(object):
     def __init__(self, **kwargs):
@@ -45,7 +19,7 @@ class Generator(object):
         fkwargs = kwargs.get('frame', {})
         fkwargs['frame_format'] = frame_format
         self.frame = Frame(**fkwargs)
-        self.data_block = LTCDataBlock(generator=self)
+        self.data_block = fields.LTCDataBlock(generator=self)
     def set_hmsf(self, **kwargs):
         self.frame.set(**kwargs)
     def incr_frame(self, value=1):

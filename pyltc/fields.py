@@ -1,3 +1,5 @@
+import numpy as np
+
 class Field(object):
     start_bit = None
     bit_length = 1
@@ -107,3 +109,30 @@ class SyncWord(Field):
     def __init__(self, **kwargs):
         super(SyncWord, self).__init__(**kwargs)
         self._value = 0x3FFD
+
+class LTCDataBlock(object):
+    def __init__(self, **kwargs):
+        self.generator = kwargs.get('generator')
+        self.fields = {}
+        for cls in Field.iter_subclasses():
+            field = cls(generator=self.generator)
+            self.fields[cls.__name__] = field
+    def get_value(self):
+        v = 0
+        for field in self.fields.values():
+            v += field.get_block_value()
+        return v
+    def get_string(self):
+        v = self.get_value()
+        s = bin(v)
+        if s.count('0') % 2 == 1:
+            v += 1 << ParityBit.start_bit
+            s = bin(v)
+        return s[2:]
+    def get_array(self):
+        a = np.zeros(80, dtype=bool)
+        for field in self.fields.values():
+            field.set_array(a)
+        if np.count_nonzero(a) % 2 == 1:
+            a[ParityBit.start_bit] = True
+        return a
