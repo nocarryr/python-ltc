@@ -16,6 +16,10 @@ def test_datablock(frame_format):
         use_current_time=False,
         frame_format=frame_format,
     )
+    sync_word = [False, False]
+    sync_word.extend([True] * 12)
+    sync_word.extend([False, True])
+    sync_word = np.array(sync_word)
     while g.frame.hour.value < 1:
         data = g.get_data_block_array()
         assert data.size == 80
@@ -50,6 +54,9 @@ def test_datablock(frame_format):
 
         v = bools_to_int(data[56:58])
         assert v == g.frame.hour.value // 10
+
+        assert len(data[64:]) == len(sync_word)
+        assert np.array_equal(data[64:], sync_word)
 
         g.incr_frame()
 
