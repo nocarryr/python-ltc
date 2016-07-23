@@ -108,7 +108,7 @@ class SyncWord(Field):
     bit_length = 16
     def __init__(self, **kwargs):
         super(SyncWord, self).__init__(**kwargs)
-        self._value = 0x3FFD
+        self._value = 0xBFFC
 
 class LTCDataBlock(object):
     def __init__(self, **kwargs):
