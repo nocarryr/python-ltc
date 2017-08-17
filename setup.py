@@ -8,7 +8,7 @@ setup(
     description = 'Tools for working with LTC (Linear Timecode)',
     packages=['pyltc'],
     include_package_data=True,
-    install_requires=['numpy', 'scipy'],
+    install_requires=['numpy', 'scipy', 'JACK-Client'],
     setup_requires=['setuptools-markdown'],
     long_description_markdown_filename='README.md',
     classifiers = [
