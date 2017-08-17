@@ -46,6 +46,12 @@ class Frame(Counter):
         self.minute = Minute(frame=self)
         self.hour = Hour(frame=self)
         self.drop_enabled = False
+        if self.frame_format.rate_rounded == 30:
+            self.df_frame_numbers = (0, 1)
+        elif self.frame_format.rate_rounded == 60:
+            self.df_frame_numbers = (0, 1, 2, 3)
+        else:
+            self.df_frame_numbers = []
         total_frames = kwargs.get('total_frames')
         if total_frames is not None:
             self.total_frames = total_frames
@@ -66,8 +72,8 @@ class Frame(Counter):
             self.second += 1
         self.value = value
     def set_value(self, value):
-        if value in [0, 1] and self.drop_enabled:
-            value = 2
+        if self.drop_enabled and value in self.df_frame_numbers:
+            value = self.df_frame_numbers[-1] + 1
         self._value = value
     def set(self, **kwargs):
         keys = ['hours', 'minutes', 'seconds']

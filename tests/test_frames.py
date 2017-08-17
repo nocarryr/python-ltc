@@ -26,6 +26,33 @@ def test_basic():
     assert frame.value == 0
     assert frame.get_tc_string() == '01:10:00:00'
 
+def test_5994_df():
+    from pyltc.frames import FrameFormat, Frame
+    fmt = FrameFormat(rate=59.94, drop_frame=True)
+    frame = Frame(frame_format=fmt)
+    assert frame.total_frames == 0
+    assert frame.get_tc_string() == '00:00:00:00'
+    frame += 60
+    assert frame.total_frames == 60
+    assert frame.value == 0
+    assert frame.get_tc_string() == '00:00:01:00'
+    frame.set(hours=1, minutes=8, seconds=59, frames=59)
+    assert frame.get_tc_string() == '01:08:59:59'
+    assert frame.total_frames == 220079
+    frame += 1
+    assert frame.value == 4
+    assert frame.get_tc_string() == '01:09:00:04'
+    assert frame.total_frames == 220080
+    frame += 56
+    assert frame.value == 4
+    assert frame.get_tc_string() == '01:09:01:04'
+    assert frame.total_frames == 220136
+    frame.set(seconds=59, frames=59)
+    assert frame.get_tc_string() == '01:09:59:59'
+    frame += 1
+    assert frame.value == 0
+    assert frame.get_tc_string() == '01:10:00:00'
+
 def test_dt():
     import datetime
     from pyltc.frames import FrameFormat, Frame
