@@ -120,6 +120,11 @@ class Counter(object):
             self.incr()
             i -= 1
         return self
+    def __isub__(self, i):
+        while i > 0:
+            self.decr()
+            i -= 1
+        return self
     def __repr__(self):
         return '{self.__class__.__name__}: {self}'.format(self=self)
     def __str__(self):
@@ -157,6 +162,19 @@ class Frame(Counter):
         if value > self.frame_format.rate:
             value = 0
             self.second += 1
+        self.value = value
+    def decr(self):
+        self.total_frames -= 1
+        value = self.value - 1
+        decr_second = False
+        if value < 0:
+            decr_second = True
+        elif self.frame_format.drop_frame and value in self.df_frame_numbers[:-1]:
+            if self.minute.value % 10 != 0:
+                decr_second = True
+        if decr_second:
+            value = int(self.frame_format.rate.value)
+            self.second -= 1
         self.value = value
     def set_value(self, value):
         if self.drop_enabled and value in self.df_frame_numbers:
@@ -232,6 +250,12 @@ class Second(Counter):
             value = 0
             self.frame.minute += 1
         self.value = value
+    def decr(self):
+        value = self.value - 1
+        if value < 0:
+            value = 59
+            self.frame.minute -= 1
+        self.value = value
 
 class Minute(Counter):
     def incr(self):
@@ -241,7 +265,15 @@ class Minute(Counter):
             value = 0
         self.value = value
         self.frame.check_drop()
+    def decr(self):
+        value = self.value - 1
+        if value < 0:
+            value = 59
+            self.frame.hour -= 1
+        self.value = value
 
 class Hour(Counter):
     def incr(self):
         self.value += 1
+    def decr(self):
+        self.value -= 1

@@ -191,3 +191,21 @@ def test_copy():
     frame2 = frame.copy()
     assert frame.total_frames == frame2.total_frames
     assert frame.get_tc_string() == frame2.get_tc_string()
+
+def test_decr():
+    from pyltc.frames import FrameFormat, Frame
+    fmt = FrameFormat(rate=29.97, drop_frame=True)
+    frame = Frame(frame_format=fmt)
+
+    frame.set(hours=1, minutes=10, seconds=0, frames=1)
+
+    assert frame.get_tc_string() == '01:10:00:01'
+
+    frame -= 1
+    assert frame.get_tc_string() == '01:10:00:00'
+
+    frame -= 1
+    assert frame.get_tc_string() == '01:09:59:29'
+
+    frame -= 29
+    assert frame.get_tc_string() == '01:09:58:29'
