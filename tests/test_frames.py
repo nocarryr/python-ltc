@@ -49,3 +49,14 @@ def test_dt():
                 assert frame.value == 2
             else:
                 assert frame.value == f
+
+def test_copy():
+    import datetime
+    from pyltc.frames import FrameFormat, Frame
+    fmt = FrameFormat(rate=29.97, drop_frame=True)
+    frame = Frame(frame_format=fmt)
+    dt = datetime.datetime.now()
+    frame.from_dt(dt)
+    frame2 = frame.copy()
+    assert frame.total_frames == frame2.total_frames
+    assert frame.get_tc_string() == frame2.get_tc_string()
