@@ -1,3 +1,107 @@
+from fractions import Fraction
+
+import pytest
+
+def test_frame_rate():
+    from pyltc.frames import FrameRate
+
+    with pytest.raises(Exception, message='FrameRate definition not found for 42'):
+        frame_rate = FrameRate.from_float(42)
+
+    frame_rate_objs = []
+
+    for flt_val in sorted(FrameRate.defaults.keys()):
+        numerator, denom = FrameRate.defaults[flt_val]
+
+        frac_val = Fraction(numerator, denom)
+
+        frame_rate = FrameRate(numerator, denom)
+        assert frame_rate.value == frac_val
+
+        assert FrameRate.from_float(flt_val) == frame_rate
+
+        if flt_val == int(flt_val):
+            assert frame_rate.float_value == flt_val
+        else:
+            assert round(frame_rate.float_value, 2) == round(flt_val, 2)
+
+        assert float(str(frame_rate)) == round(flt_val, 2)
+
+        num_denom_str = repr(frame_rate).split('(')[1].split(')')[0]
+        assert int(num_denom_str.split('/')[0]) == frame_rate.numerator
+        assert int(num_denom_str.split('/')[1]) == frame_rate.denom
+
+        assert frame_rate.value in FrameRate._registry
+        frame_rate_objs.append(frame_rate)
+
+    for i, frame_rate in enumerate(frame_rate_objs):
+
+        ## FrameRate._registry check
+        frame_rate2 = FrameRate(frame_rate.numerator, frame_rate.denom)
+        assert frame_rate is frame_rate2
+        assert id(frame_rate) == id(frame_rate2)
+
+        ## Equality checking (same values)
+        assert frame_rate2 >= frame_rate
+        assert frame_rate2 <= frame_rate
+        assert frame_rate2 == frame_rate
+
+        assert frame_rate >= frame_rate2
+        assert frame_rate <= frame_rate2
+        assert frame_rate == frame_rate2
+
+        if i > 0:
+            prev_frame_rate = frame_rate_objs[i-1]
+        else:
+            prev_frame_rate = None
+
+        try:
+            next_frame_rate = frame_rate_objs[i+1]
+        except IndexError:
+            next_frame_rate = None
+
+        ## gt, ge, lt, le, eq, ne checks
+        if prev_frame_rate is not None:
+            assert prev_frame_rate != frame_rate
+            assert prev_frame_rate < frame_rate
+            assert frame_rate > prev_frame_rate
+            assert prev_frame_rate <= frame_rate
+            assert not prev_frame_rate >= frame_rate
+            assert frame_rate >= prev_frame_rate
+            assert not frame_rate <= prev_frame_rate
+            assert not frame_rate == prev_frame_rate
+            assert not prev_frame_rate == frame_rate
+
+        if next_frame_rate is not None:
+            assert next_frame_rate != frame_rate
+            assert next_frame_rate > frame_rate
+            assert frame_rate < next_frame_rate
+            assert next_frame_rate >= frame_rate
+            assert frame_rate <= next_frame_rate
+            assert not next_frame_rate <= frame_rate
+            assert not frame_rate >= next_frame_rate
+            assert not frame_rate == next_frame_rate
+            assert not next_frame_rate == frame_rate
+
+
+def test_frame_rate_ops():
+    from pyltc.frames import FrameRate
+
+    for flt_val, args in FrameRate.defaults.items():
+        frame_rate = FrameRate(*args)
+
+        for frame_count in range(1, 43202):
+            fr_secs = float(frame_rate * frame_count)
+            flt_secs = frame_rate.float_value * frame_count
+            if frame_rate.denom != 1:
+                if frame_count % frame_rate.denom == 0:
+                    assert flt_secs == fr_secs
+                elif fr_secs < 1:
+                    assert round(flt_secs, 2) == round(fr_secs, 2)
+                else:
+                    assert round(flt_secs, 0) == round(fr_secs, 0)
+            else:
+                assert flt_secs == fr_secs
 
 def test_basic():
     from pyltc.frames import FrameFormat, Frame

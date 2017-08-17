@@ -47,7 +47,7 @@ class Resampler(object):
 
 class FrameResampler(Resampler):
     def __init__(self, **kwargs):
-        self.frame_rate = float(kwargs.get('frame_rate'))
+        self.frame_rate = kwargs.get('frame_rate')
         self.frame_samples = int(self.frame_rate * 100)
         out_sample_rate = kwargs.get('out_sample_rate')
         kwargs.setdefault('in_sample_rate', int(out_sample_rate / self.frame_rate))

@@ -89,9 +89,7 @@ class AudioGenerator(Generator):
             self.set_frame_from_dt()
         rs = self.sample_rate = kwargs.get('sample_rate', 48000)
         fr = self.frame_format.rate
-        if fr == 29.97:
-            fr = Fraction(30000, 1001)
-        self.samples_per_frame = Fraction(rs, fr)
+        self.samples_per_frame = rs / fr
         if int(self.samples_per_frame) == float(self.samples_per_frame):
             self.even_samples = True
         else:
@@ -151,7 +149,7 @@ class TimerThread(threading.Thread):
         self.generator = generator
     def run(self):
         g = self.generator
-        fr = float(g.frame_format.rate)
+        fr = g.frame_format.rate.float_value
         interval = 1 / fr
         start_ts = self.start_time = time.time()
         last_ts = start_ts
@@ -186,7 +184,7 @@ def time_test(num_frames=30, **kwargs):
         g.incr_frame()
         end_ts = time.time()
         times.append(end_ts - start_ts)
-    frame_time = 1 / float(g.frame_format.rate)
+    frame_time = 1 / g.frame_format.rate.float_value
     slowtimes = [t for t in times if t >= frame_time]
     print('min={}, max={}'.format(min(times), max(times)))
     if len(slowtimes):
