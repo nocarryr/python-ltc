@@ -159,7 +159,7 @@ class Frame(Counter):
     def incr(self):
         self.total_frames += 1
         value = self.value + 1
-        if value > self.frame_format.rate:
+        if value >= self.frame_format.rate.rounded:
             value = 0
             self.second += 1
         self.value = value
@@ -169,11 +169,11 @@ class Frame(Counter):
         decr_second = False
         if value < 0:
             decr_second = True
-        elif self.frame_format.drop_frame and value in self.df_frame_numbers[:-1]:
+        elif self.frame_format.drop_frame and value in self.df_frame_numbers:
             if self.minute.value % 10 != 0:
                 decr_second = True
         if decr_second:
-            value = int(self.frame_format.rate.value)
+            value = int(self.frame_format.rate.rounded - 1)
             self.second -= 1
         self.value = value
     def set_value(self, value):
@@ -246,7 +246,7 @@ class Frame(Counter):
 class Second(Counter):
     def incr(self):
         value = self.value + 1
-        if value >= 59:
+        if value > 59:
             value = 0
             self.frame.minute += 1
         self.value = value
@@ -256,11 +256,14 @@ class Second(Counter):
             value = 59
             self.frame.minute -= 1
         self.value = value
+    def set_value(self, value):
+        self._value = value
+        self.frame.check_drop()
 
 class Minute(Counter):
     def incr(self):
         value = self.value + 1
-        if value >= 59:
+        if value > 59:
             self.frame.hour += 1
             value = 0
         self.value = value
