@@ -207,5 +207,5 @@ def test_decr():
     frame -= 1
     assert frame.get_tc_string() == '01:09:59:29'
 
-    frame -= 29
+    frame -= 28
     assert frame.get_tc_string() == '01:09:58:29'
