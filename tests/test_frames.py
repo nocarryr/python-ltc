@@ -199,7 +199,7 @@ def test_timecode(frame_format):
     fmt = FrameFormat(**frame_format)
     frame = Frame(frame_format=fmt)
 
-    for total_frames in range(int(fmt.rate.rounded * 3600 * 2)):
+    for total_frames in range(int(fmt.rate.rounded * 3600)):
         assert frame.total_frames == total_frames
 
         frame2 = Frame(frame_format=fmt)
@@ -216,6 +216,35 @@ def test_timecode(frame_format):
         )
         assert frame3.total_frames == frame.total_frames == total_frames
         assert frame3.get_tc_string() == frame.get_tc_string()
+
+        assert frame == frame2 == frame3 == total_frames
+
+
+        frame4 = frame + Frame(frame_format=fmt, hours=2)
+
+
+        assert frame4 != frame
+        assert frame4 != total_frames
+        assert frame4 > frame
+        assert frame4 >= frame
+        assert frame < frame4
+        assert frame <= frame4
+        assert frame4 > total_frames
+
+        assert frame4.hour.value == frame.hour.value + 2
+        assert frame4.minute.value == frame.minute.value
+        assert frame4.second.value == frame.second.value
+        assert frame4.value == frame.value
+
+        frame4 = frame4 - Frame(frame_format=fmt, hours=2).total_frames
+        assert frame4 == frame
+
+        frame4 += 20
+        assert frame4.total_frames == total_frames + 20
+
+        if total_frames >= 20:
+            frame4 -= 20
+            assert frame4.total_frames == total_frames
 
         if frame_format.get('drop_frame'):
             drop_enabled = frame.second.value == 0 and frame.minute.value % 10 != 0

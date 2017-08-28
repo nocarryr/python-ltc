@@ -268,6 +268,54 @@ class Frame(Counter):
             frame_format=self.frame_format,
             total_frames=self.total_frames,
         )
+    def _coerce_value(self, other):
+        if isinstance(other, Frame):
+            if other.frame_format.rate != self.frame_format.rate:
+                return NotImplemented
+            elif other.frame_format.drop_frame is not self.frame_format.drop_frame:
+                return NotImplemented
+            other = other.total_frames
+        if not isinstance(other, int):
+            return NotImplemented
+        return other
+    def _coerce_op(self, other, op):
+        other = self._coerce_value(other)
+        if other is NotImplemented:
+            return NotImplemented
+        tf = op(self.total_frames, other)
+        return self.__class__(frame_format=self.frame_format, total_frames=tf)
+    def _coerce_cmp(self, other, op):
+        other = self._coerce_value(other)
+        if other is NotImplemented:
+            return NotImplemented
+        return op(self.total_frames, other)
+    def __iadd__(self, other):
+        other = self._coerce_value(other)
+        if other is NotImplemented:
+            return NotImplemented
+        if other == 1:
+            self.incr()
+        else:
+            self.set_total_frames(self.total_frames + other)
+        return self
+    def __isub__(self, other):
+        other = self._coerce_value(other)
+        if other is NotImplemented:
+            return NotImplemented
+        if other == 1:
+            self.decr()
+        else:
+            self.set_total_frames(self.total_frames - other)
+        return self
+    def __add__(self, other): return self._coerce_op(other, operator.add)
+    def __sub__(self, other): return self._coerce_op(other, operator.sub)
+    def __eq__(self, other): return self._coerce_cmp(other, operator.eq)
+    def __ne__(self, other): return self._coerce_cmp(other, operator.ne)
+    def __gt__(self, other): return self._coerce_cmp(other, operator.gt)
+    def __ge__(self, other): return self._coerce_cmp(other, operator.ge)
+    def __lt__(self, other): return self._coerce_cmp(other, operator.lt)
+    def __le__(self, other): return self._coerce_cmp(other, operator.le)
+
 
 class Second(Counter):
     def incr(self):
