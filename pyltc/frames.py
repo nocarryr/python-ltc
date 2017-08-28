@@ -264,12 +264,10 @@ class Frame(Counter):
     def get_tc_string(self):
         return ':'.join([str(obj) for obj in self.get_hmsf()])
     def copy(self):
-        f = Frame(frame_format=self.frame_format, total_frames=self.total_frames)
-        f._value = self._value
-        f.second._value = self.second._value
-        f.minute._value = self.minute._value
-        f.hour._value = self.hour._value
-        return f
+        return self.__class__(
+            frame_format=self.frame_format,
+            total_frames=self.total_frames,
+        )
 
 class Second(Counter):
     def incr(self):
