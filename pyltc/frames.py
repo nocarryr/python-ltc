@@ -170,7 +170,7 @@ class Frame(Counter):
         if value < 0:
             decr_second = True
         elif self.frame_format.drop_frame and value in self.df_frame_numbers:
-            if self.minute.value % 10 != 0:
+            if self.second.value == 0 and self.minute.value % 10 != 0:
                 decr_second = True
         if decr_second:
             value = int(self.frame_format.rate.rounded - 1)
@@ -225,7 +225,7 @@ class Frame(Counter):
     def check_drop(self):
         if not self.frame_format.drop_frame:
             return
-        drop = self.minute.value % 10 != 0
+        drop = self.second.value == 0 and self.minute.value % 10 != 0
         self.drop_enabled = drop
     def get_hmsf(self):
         l = []
