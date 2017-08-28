@@ -17,6 +17,10 @@ FRAME_FORMATS = [
 def frame_format(request):
     return request.param
 
+@pytest.fixture(params=[fmt for fmt in FRAME_FORMATS if fmt['rate']<=30])
+def ltc_frame_format(request):
+    return request.param
+
 @pytest.fixture
 def jackd_server(request):
     cmdstr = 'jackd -ddummy -r48000 -p1024'

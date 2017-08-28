@@ -10,11 +10,11 @@ def bools_to_int(b):
             n += 1 << i
     return n
 
-def test_datablock(frame_format):
+def test_datablock(ltc_frame_format):
     from pyltc.tcgen import Generator
     g = Generator(
         use_current_time=False,
-        frame_format=frame_format,
+        frame_format=ltc_frame_format,
     )
     sync_word = [False, False]
     sync_word.extend([True] * 12)
@@ -26,7 +26,7 @@ def test_datablock(frame_format):
         assert np.count_nonzero(data) % 2 == 0
 
         # drop_frame flag
-        assert data[10] == frame_format.get('drop_frame', False)
+        assert data[10] == ltc_frame_format.get('drop_frame', False)
 
         # reserved zero
         assert data[58] == False
@@ -60,13 +60,13 @@ def test_datablock(frame_format):
 
         g.incr_frame()
 
-def test_wave_write(frame_format, tmpdir):
+def test_wave_write(ltc_frame_format, tmpdir):
     from pyltc.tcgen import AudioGenerator
     num_frames = 900
     g = AudioGenerator(
         use_current_time=True,
         bit_depth=16,
-        frame_format=frame_format,
+        frame_format=ltc_frame_format,
     )
     if g.frame_format.drop_frame:
         df = 'DF'
@@ -79,7 +79,7 @@ def test_wave_write(frame_format, tmpdir):
     rs, b = wavfile.read(filename)
     assert rs == g.sample_rate
     assert np.array_equal(a, b)
-    if frame_format['rate'] == 29.97:
+    if ltc_frame_format['rate'] == 29.97:
         num_samples = float(g.samples_per_frame * num_frames)
     else:
         num_samples = float(g.samples_per_frame * num_frames)
