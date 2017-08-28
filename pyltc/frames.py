@@ -146,14 +146,14 @@ class Frame(Counter):
             self.df_frame_numbers = []
         total_frames = kwargs.get('total_frames')
         if total_frames is not None:
-            self.total_frames = total_frames
+            self.set_total_frames(total_frames)
         else:
             keys = ['hours', 'minutes', 'seconds', 'frames']
             hmsf = {k:kwargs.get(k) for k in keys if k in kwargs}
             if len(hmsf):
                 self.set(**hmsf)
         if not hasattr(self, 'total_frames'):
-            self.total_frames = 0
+            self.total_frames = self.calc_total_frames()
         fr = self.frame_format.rate.float_value
         self.frame_times = [i / fr for i in range(int(round(fr)))]
     def incr(self):
@@ -214,13 +214,41 @@ class Frame(Counter):
                 if f - s < s - closest:
                     return i
                 return i - 1
+    def set_total_frames(self, total_frames):
+        self.total_frames = total_frames
+        fr = self.frame_format.rate
+        if self.frame_format.drop_frame:
+            Doffset = int(fr * 60 * 10)
+            Moffset = int(fr * 60)
+            drops_per_ten_minutes = int(fr.rounded * 60 * 10) - Doffset
+            drop_num = len(self.df_frame_numbers)
+            D = total_frames // Doffset
+            M = total_frames % Doffset
+            if M in self.df_frame_numbers:
+                add_frames = drops_per_ten_minutes * D
+            else:
+                add_frames = drops_per_ten_minutes * D + drop_num * ((M - drop_num) // Moffset)
+            if add_frames > 0:
+                total_frames += add_frames
+
+        self.hour.value = (((total_frames // fr.rounded) // 60) // 60) % 24
+        self.minute.value = ((total_frames // fr.rounded) // 60) % 60
+        self.second.value = (total_frames // fr.rounded) % 60
+        self.value = total_frames % fr.rounded
+        self.check_drop()
     def calc_total_frames(self):
         seconds = self.second.value
-        seconds += self.minute.value % 60
+        seconds += self.minute.value * 60
         seconds += self.hour.value * 3600
         fr = self.frame_format.rate.rounded
         frames = seconds * fr
         frames += self.value
+
+        if self.frame_format.drop_frame:
+            total_minutes = 60 * self.hour.value + self.minute.value
+            drop_num = len(self.df_frame_numbers)
+            total_dropped = drop_num * (total_minutes - total_minutes // 10)
+            frames -= total_dropped
         return frames
     def check_drop(self):
         if not self.frame_format.drop_frame:

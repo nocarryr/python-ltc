@@ -6,6 +6,8 @@ import pytest
 FRAME_FORMATS = [
     {'rate':29.97},
     {'rate':29.97, 'drop_frame':True},
+    {'rate':59.94},
+    {'rate':59.94, 'drop_frame':True},
     {'rate':30},
     {'rate':25},
     {'rate':24},
