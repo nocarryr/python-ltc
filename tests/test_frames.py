@@ -350,4 +350,4 @@ def test_decr(frame_format):
             if drop_enabled:
                 assert frame.value >= 2
 
-        frame += 1
+        frame -= 1
