@@ -23,6 +23,11 @@ class FrameRate(object):
         self.__numerator = numerator
         self.__denom = denom
         self.__value = Fraction(numerator, denom)
+        self.__float_value = float(self.value)
+        if self.denom == 1:
+            self.__rounded = self.numerator
+        else:
+            self.__rounded = round(self.value)
     @classmethod
     def from_float(cls, value):
         if value not in cls.defaults:
@@ -40,12 +45,10 @@ class FrameRate(object):
         return self.__value
     @property
     def float_value(self):
-        return float(self.value)
+        return self.__float_value
     @property
     def rounded(self):
-        if self.denom == 1:
-            return self.numerator
-        return round(self.value)
+        return self.__rounded
     def _coerce_value(self, other):
         if isinstance(other, FrameRate):
             return other.value
