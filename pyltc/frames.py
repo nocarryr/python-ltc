@@ -143,7 +143,7 @@ class Frame(Counter):
         elif self.frame_format.rate.rounded == 60:
             self.df_frame_numbers = (0, 1, 2, 3)
         else:
-            self.df_frame_numbers = []
+            self.df_frame_numbers = kwargs.get('df_frame_numbers', [])
         total_frames = kwargs.get('total_frames')
         if total_frames is not None:
             self.set_total_frames(total_frames)
