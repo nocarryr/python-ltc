@@ -31,7 +31,7 @@ if {'sdist', 'bdist_wheel'} & set(sys.argv):
 
 setup(
     name = 'python-ltc',
-    version = 'v0.0.2',
+    version = 'v0.0.3',
     author = 'Matthew Reid',
     author_email = 'matt@nomadic-recording.com',
     url='https://github.com/nocarryr/python-ltc',
