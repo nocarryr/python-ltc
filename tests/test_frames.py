@@ -327,20 +327,15 @@ def test_decr(frame_format):
 
         frame_string = str(frame)
 
-        frame2 = Frame(frame_format=fmt)
-        frame2.set_total_frames(total_frames)
-
-        assert str(frame2) == frame_string
-
-        frame3 = Frame(
+        frame2 = Frame(
             frame_format=fmt,
             hours=frame.hour.value,
             minutes=frame.minute.value,
             seconds=frame.second.value,
             frames=frame.value,
         )
-        assert frame3.total_frames == frame.total_frames == total_frames
-        assert str(frame3) == frame_string
+        assert frame2.total_frames == frame.total_frames == total_frames
+        assert str(frame2) == str(frame)
 
         if frame_format.get('drop_frame'):
             drop_enabled = frame.second.value == 0 and frame.minute.value % 10 != 0
