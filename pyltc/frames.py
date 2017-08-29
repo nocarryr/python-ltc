@@ -275,7 +275,7 @@ class Frame(Counter):
             elif other.frame_format.drop_frame is not self.frame_format.drop_frame:
                 return NotImplemented
             other = other.total_frames
-        if not isinstance(other, int):
+        if not isinstance(other, numbers.Number):
             return NotImplemented
         return other
     def _coerce_op(self, other, op):
