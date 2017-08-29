@@ -133,7 +133,7 @@ class Counter(object):
         return v
     @value.setter
     def value(self, value):
-        self.set_value(value)
+        self.set_value(int(value))
     def set_value(self, value):
         self._value = value
     def __iadd__(self, i):
