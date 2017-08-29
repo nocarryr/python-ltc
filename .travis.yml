@@ -11,7 +11,7 @@ addons:
 install:
   - pip install -U pip
   - pip install -U setuptools wheel
-  - pip install -U pytest pytest-cov coveralls
+  - pip install -U pytest pytest-cov pytest-xdist coveralls
   - pip install -e .
 script:
   - py.test --cov-config .coveragerc --cov=pyltc
