@@ -108,7 +108,7 @@ def test_2997_df():
     fmt = FrameFormat(rate=29.97, drop_frame=True)
     frame = Frame(frame_format=fmt, minutes=10)
 
-    assert frame.get_tc_string() == '00:10:00:00'
+    assert str(frame) == '00:10:00;00'
 
     # 29.97 drops 18 frames every 10 minutes (30fps * 10m * 60s == 18000)
     assert frame.total_frames == 17982
@@ -117,31 +117,31 @@ def test_2997_df():
 
     frame = Frame(frame_format=fmt, minutes=9, seconds=59, frames=29)
 
-    assert frame.get_tc_string() == '00:09:59:29'
+    assert str(frame) == '00:09:59;29'
     assert frame.total_frames == 17981
 
     frame += 1
-    assert frame.get_tc_string() == '00:10:00:00'
+    assert str(frame) == '00:10:00;00'
     assert frame.total_frames == 17982
 
 
     frame = Frame(frame_format=fmt, total_frames=17982)
-    assert frame.get_tc_string() == '00:10:00:00'
+    assert str(frame) == '00:10:00;00'
     assert frame.total_frames == 17982
 
 
     frame = Frame(frame_format=fmt, minutes=10, frames=1)
 
-    assert frame.get_tc_string() == '00:10:00:01'
+    assert str(frame) == '00:10:00;01'
     assert frame.total_frames == 17983
 
     frame -= 1
-    assert frame.get_tc_string() == '00:10:00:00'
+    assert str(frame) == '00:10:00;00'
     assert frame.total_frames == 17982
 
     frame -= 1
 
-    assert frame.get_tc_string() == '00:09:59:29'
+    assert str(frame) == '00:09:59;29'
     assert frame.total_frames == 17981
 
 
@@ -151,45 +151,45 @@ def test_5994_df():
     fmt = FrameFormat(rate=59.94, drop_frame=True)
     frame = Frame(frame_format=fmt, minutes=10)
 
-    assert frame.get_tc_string() == '00:10:00:00'
+    assert str(frame) == '00:10:00;00'
 
     # 59.94 drops 36 frames every 10 minutes (60fps * 10m * 60s == 36000)
     assert frame.total_frames == 35964
 
     frame = Frame(frame_format=fmt, minutes=9, seconds=59, frames=59)
 
-    assert frame.get_tc_string() == '00:09:59:59'
+    assert str(frame) == '00:09:59;59'
     assert frame.total_frames == 35963
 
     frame += 1
-    assert frame.get_tc_string() == '00:10:00:00'
+    assert str(frame) == '00:10:00;00'
     assert frame.total_frames == 35964
 
 
     frame = Frame(frame_format=fmt, total_frames=35964)
-    assert frame.get_tc_string() == '00:10:00:00'
+    assert str(frame) == '00:10:00;00'
     assert frame.total_frames == 35964
 
 
     frame = Frame(frame_format=fmt, minutes=10, frames=2)
 
-    assert frame.get_tc_string() == '00:10:00:02'
+    assert str(frame) == '00:10:00;02'
     assert frame.total_frames == 35966
     frame2 = Frame(frame_format=fmt, total_frames=frame.total_frames)
     assert frame.total_frames == frame2.total_frames
-    assert frame.get_tc_string() == frame2.get_tc_string()
+    assert str(frame) == str(frame2)
 
     frame -= 1
-    assert frame.get_tc_string() == '00:10:00:01'
+    assert str(frame) == '00:10:00;01'
     assert frame.total_frames == 35965
 
     frame -= 1
-    assert frame.get_tc_string() == '00:10:00:00'
+    assert str(frame) == '00:10:00;00'
     assert frame.total_frames == 35964
 
     frame -= 1
 
-    assert frame.get_tc_string() == '00:09:59:59'
+    assert str(frame) == '00:09:59;59'
     assert frame.total_frames == 35963
 
 
@@ -197,15 +197,26 @@ def test_timecode(frame_format):
     from pyltc.frames import FrameFormat, Frame
 
     fmt = FrameFormat(**frame_format)
+
+    fmt_repr = repr(fmt)
+    assert fmt_repr.split(': ')[0] == 'FrameFormat'
+    assert float(fmt_repr.split(': ')[1].split('fps')[0]) == frame_format['rate']
+    if frame_format.get('drop_frame'):
+        assert fmt_repr.split('(')[1].split(')')[0] == 'Drop'
+    else:
+        assert fmt_repr.split('(')[1].split(')')[0] == 'Non-Drop'
+
     frame = Frame(frame_format=fmt)
 
     for total_frames in range(int(fmt.rate.rounded * 3600)):
         assert frame.total_frames == total_frames
 
+        frame_string = str(frame)
+
         frame2 = Frame(frame_format=fmt)
         frame2.set_total_frames(total_frames)
 
-        assert frame.get_tc_string() == frame2.get_tc_string()
+        assert str(frame2) == frame_string
 
         frame3 = Frame(
             frame_format=fmt,
@@ -215,7 +226,7 @@ def test_timecode(frame_format):
             frames=frame.value,
         )
         assert frame3.total_frames == frame.total_frames == total_frames
-        assert frame3.get_tc_string() == frame.get_tc_string()
+        assert str(frame3) == frame_string
 
         assert frame == frame2 == frame3 == total_frames
 
@@ -247,12 +258,24 @@ def test_timecode(frame_format):
             assert frame4.total_frames == total_frames
 
         if frame_format.get('drop_frame'):
+            h, m, s = [int(v) for v in frame_string.split(';')[0].split(':')]
+            f = int(frame_string.split(';')[1])
+            assert [h, m, s, f] == frame.get_hmsf_values()
+
             drop_enabled = frame.second.value == 0 and frame.minute.value % 10 != 0
 
             assert frame.drop_enabled is frame2.drop_enabled is frame3.drop_enabled
 
             if drop_enabled:
                 assert frame.value >= 2
+        else:
+            hmsf = [int(v) for v in frame_string.split(':')]
+            assert hmsf == frame.get_hmsf_values()
+
+        frame_repr = repr(frame)
+        assert frame_repr.split(': ')[0] == 'Frame'
+        assert frame_repr.split(': ')[1].split(' - ')[0] == frame_string
+        assert frame_repr.split(' - ')[1] == str(fmt)
 
         frame += 1
 
@@ -290,7 +313,7 @@ def test_copy(frame_format):
     frame.from_dt(dt)
     frame2 = frame.copy()
     assert frame.total_frames == frame2.total_frames
-    assert frame.get_tc_string() == frame2.get_tc_string()
+    assert str(frame) == str(frame2)
 
 def test_decr(frame_format):
     from pyltc.frames import FrameFormat, Frame
@@ -302,10 +325,12 @@ def test_decr(frame_format):
         frame.set_total_frames(total_frames)
         assert frame.total_frames == total_frames
 
+        frame_string = str(frame)
+
         frame2 = Frame(frame_format=fmt)
         frame2.set_total_frames(total_frames)
 
-        assert frame.get_tc_string() == frame2.get_tc_string()
+        assert str(frame2) == frame_string
 
         frame3 = Frame(
             frame_format=fmt,
@@ -315,7 +340,7 @@ def test_decr(frame_format):
             frames=frame.value,
         )
         assert frame3.total_frames == frame.total_frames == total_frames
-        assert frame3.get_tc_string() == frame.get_tc_string()
+        assert str(frame3) == frame_string
 
         if frame_format.get('drop_frame'):
             drop_enabled = frame.second.value == 0 and frame.minute.value % 10 != 0

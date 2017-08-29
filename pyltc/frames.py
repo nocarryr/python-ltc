@@ -91,6 +91,14 @@ class FrameFormat(object):
             rate = FrameRate.from_float(rate)
         self.rate = rate
         self.drop_frame = kwargs.get('drop_frame')
+        tc_fmt = ':'.join(['{:02d}'] * 3)
+        if self.drop_frame:
+            f_delim = ';'
+        else:
+            f_delim = ':'
+        self.tc_fmt_str = f_delim.join([tc_fmt, '{:02d}'])
+    def format_tc_string(self, hmsf):
+        return self.tc_fmt_str.format(*hmsf)
     def __eq__(self, other):
         if not isinstance(other, FrameFormat):
             return NotImplemented
@@ -108,7 +116,7 @@ class FrameFormat(object):
             s = 'Drop'
         else:
             s = 'Non-Drop'
-        return '{}fps ({})'.format(self.rate, self.drop_frame)
+        return '{}fps ({})'.format(self.rate, s)
 
 class Counter(object):
     def __init__(self, **kwargs):
@@ -271,8 +279,10 @@ class Frame(Counter):
             l.append(getattr(self, attr))
         l.append(self)
         return l
+    def get_hmsf_values(self):
+        return [obj.value for obj in self.get_hmsf()]
     def get_tc_string(self):
-        return ':'.join([str(obj) for obj in self.get_hmsf()])
+        return self.frame_format.format_tc_string(self.get_hmsf_values())
     def copy(self):
         return self.__class__(
             frame_format=self.frame_format,
@@ -323,6 +333,10 @@ class Frame(Counter):
     def __ge__(self, other): return self._coerce_cmp(other, operator.ge)
     def __lt__(self, other): return self._coerce_cmp(other, operator.lt)
     def __le__(self, other): return self._coerce_cmp(other, operator.le)
+    def __repr__(self):
+        return '{self.__class__.__name__}: {self} - {self.frame_format}'.format(self=self)
+    def __str__(self):
+        return self.get_tc_string()
 
 
 class Second(Counter):
