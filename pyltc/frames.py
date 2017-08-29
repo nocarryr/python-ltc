@@ -91,6 +91,16 @@ class FrameFormat(object):
             rate = FrameRate.from_float(rate)
         self.rate = rate
         self.drop_frame = kwargs.get('drop_frame')
+    def __eq__(self, other):
+        if not isinstance(other, FrameFormat):
+            return NotImplemented
+        if self.drop_frame is not other.drop_frame:
+            return False
+        return self.rate == other.rate
+    def __ne__(self, other):
+        if not isinstance(other, FrameFormat):
+            return NotImplemented
+        return not self.__eq__(other)
     def __repr__(self):
         return '{self.__class__.__name__}: {self}'.format(self=self)
     def __str__(self):
@@ -270,9 +280,7 @@ class Frame(Counter):
         )
     def _coerce_value(self, other):
         if isinstance(other, Frame):
-            if other.frame_format.rate != self.frame_format.rate:
-                return NotImplemented
-            elif other.frame_format.drop_frame is not self.frame_format.drop_frame:
+            if self.frame_format != other.frame_format:
                 return NotImplemented
             other = other.total_frames
         if not isinstance(other, numbers.Number):
