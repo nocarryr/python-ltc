@@ -340,7 +340,7 @@ def test_decr(frame_format):
         if frame_format.get('drop_frame'):
             drop_enabled = frame.second.value == 0 and frame.minute.value % 10 != 0
 
-            assert frame.drop_enabled is frame2.drop_enabled is frame3.drop_enabled
+            assert frame.drop_enabled is frame2.drop_enabled is drop_enabled
 
             if drop_enabled:
                 assert frame.value >= 2
