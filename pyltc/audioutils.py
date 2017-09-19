@@ -50,7 +50,7 @@ class FrameResampler(Resampler):
         self.frame_rate = kwargs.get('frame_rate')
         self.frame_samples = int(self.frame_rate * 100)
         out_sample_rate = kwargs.get('out_sample_rate')
-        kwargs.setdefault('in_sample_rate', int(out_sample_rate / self.frame_rate))
+        kwargs.setdefault('in_sample_rate', int(out_sample_rate / self.frame_rate.float_value))
         super(FrameResampler, self).__init__(**kwargs)
         self.data_block_sampler = LTCDataBlockSampler(
             out_sample_rate=self.in_sample_rate,
