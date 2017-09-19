@@ -20,10 +20,7 @@ def test_frame_rate():
 
         assert FrameRate.from_float(flt_val) == frame_rate
 
-        if flt_val == int(flt_val):
-            assert frame_rate.float_value == flt_val
-        else:
-            assert round(frame_rate.float_value, 2) == round(flt_val, 2)
+        assert round(frame_rate.float_value, 2) == round(flt_val, 2)
 
         assert float(str(frame_rate)) == round(flt_val, 2)
 
@@ -95,11 +92,9 @@ def test_frame_rate_ops():
             flt_secs = frame_rate.float_value * frame_count
             if frame_rate.denom != 1:
                 if frame_count % frame_rate.denom == 0:
-                    assert flt_secs == fr_secs
-                elif fr_secs < 1:
-                    assert round(flt_secs, 2) == round(fr_secs, 2)
+                    assert round(flt_secs) == round(fr_secs)
                 else:
-                    assert round(flt_secs, 0) == round(fr_secs, 0)
+                    assert flt_secs == pytest.approx(fr_secs)
             else:
                 assert flt_secs == fr_secs
 
