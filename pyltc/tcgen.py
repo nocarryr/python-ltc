@@ -88,8 +88,8 @@ class AudioGenerator(Generator):
         if self.use_current_time:
             self.set_frame_from_dt()
         rs = self.sample_rate = kwargs.get('sample_rate', 48000)
-        fr = self.frame_format.rate.float_value
-        self.samples_per_frame = rs / fr
+        fr = self.frame_format.rate
+        self.samples_per_frame = float(rs / fr)
         if int(self.samples_per_frame) == float(self.samples_per_frame):
             self.even_samples = True
         else:
