@@ -70,11 +70,13 @@ cdef class _FrameRate(object):
         else:
             value = NotImplemented
         return value
-    cpdef _coerce_op(self, other, op):
+    cpdef _coerce_op(self, other, op, reverse_op=False):
         cdef object other_value
         other_value = self._coerce_value(other)
         if other_value is NotImplemented:
             return NotImplemented
+        if reverse_op:
+            return op(other_value, self.value)
         return op(self.value, other_value)
     def __richcmp__(_FrameRate self, other, op):
         cdef int cmp_result
@@ -91,23 +93,23 @@ cdef class _FrameRate(object):
         return richcmp_helper(cmp_result, op)
     def __mul__(self, other):
         if not isinstance(self, _FrameRate):
-            return other._coerce_op(self, operator.mul)
+            return other._coerce_op(self, operator.mul, reverse_op=True)
         return self._coerce_op(other, operator.mul)
     def __div__(self, other):
         if not isinstance(self, _FrameRate):
-            return other._coerce_op(self, operator.div)
+            return other._coerce_op(self, operator.div, reverse_op=True)
         return self._coerce_op(other, operator.div)
     def __truediv__(self, other):
         if not isinstance(self, _FrameRate):
-            return other._coerce_op(self, operator.truediv)
+            return other._coerce_op(self, operator.truediv, reverse_op=True)
         return self._coerce_op(other, operator.truediv)
     def __floordiv__(self, other):
         if not isinstance(self, _FrameRate):
-            return other._coerce_op(self, operator.floordiv)
+            return other._coerce_op(self, operator.floordiv, reverse_op=True)
         return self._coerce_op(other, operator.floordiv)
     def __mod__(self, other):
         if not isinstance(self, _FrameRate):
-            return other._coerce_op(self, operator.mod)
+            return other._coerce_op(self, operator.mod, reverse_op=True)
         return self._coerce_op(other, operator.mod)
     def __repr__(self):
         return '<FrameRate: {self} ({self.numerator}/{self.denom})>'.format(self=self)
