@@ -1,5 +1,6 @@
 import sys
 from setuptools import setup, find_packages
+from Cython.Build import cythonize
 
 def convert_readme():
     try:
@@ -40,6 +41,7 @@ setup(
     packages=find_packages(exclude=['tests*']),
     include_package_data=True,
     install_requires=['numpy', 'scipy', 'JACK-Client'],
+    ext_modules=cythonize('pyltc/*.pyx'),
     setup_requires=['pypandoc'],
     long_description=get_long_description(),
     classifiers = [
