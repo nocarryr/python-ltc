@@ -1,6 +1,7 @@
 [run]
 source = pyltc
 parallel = True
+plugins = Cython.Coverage
 
 [report]
 exclude_lines =

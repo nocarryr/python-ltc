@@ -41,7 +41,7 @@ setup(
     packages=find_packages(exclude=['tests*']),
     include_package_data=True,
     install_requires=['numpy', 'scipy', 'JACK-Client'],
-    ext_modules=cythonize('pyltc/*.pyx'),
+    ext_modules=cythonize('pyltc/*.pyx', compiler_directives={'linetrace':True}),
     setup_requires=['pypandoc'],
     long_description=get_long_description(),
     classifiers = [
