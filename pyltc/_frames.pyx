@@ -18,25 +18,6 @@ cdef inline bint richcmp_helper(int compare, int op):
     elif op == 5: # >=
         return compare >= 0
 
-cdef inline bint coerce_allowed(x, y):
-    cdef object self, other
-    self = x
-    other = y
-    # if isinstance(x, _Frame):
-    #     self = x
-    #     other = y
-    # elif isinstance(y, _Frame):
-    #     other = x
-    #     self = y
-    # else:
-    #     return False
-    if isinstance(other, _Frame):
-        if self.frame_format != other.frame_format:
-            return False
-    elif not isinstance(other, numbers.Number):
-        return False
-    return True
-
 cdef class Counter(object):
     cdef public object frame
     cdef public int _value
@@ -203,9 +184,6 @@ cdef class _Frame(Counter):
         return l
     cpdef get_tc_string(self):
         return self.frame_format.format_tc_string(self.get_hmsf_values())
-    cpdef _coerce_op(_Frame self, other, op):
-        tf = op(int(self), int(other))
-        return self.__class__(frame_format=self.frame_format, total_frames=tf)
     def __iadd__(_Frame self, other):
         cdef int total_frames
         total_frames = int(other)
@@ -235,8 +213,14 @@ cdef class _Frame(Counter):
         else:
             cmp_result = 0
         return richcmp_helper(cmp_result, op)
-    def __add__(_Frame self, other): return self._coerce_op(other, operator.add)
-    def __sub__(_Frame self, other): return self._coerce_op(other, operator.sub)
+    def __add__(_Frame self, other):
+        cdef int total_frames
+        total_frames = int(self) + int(other)
+        return self.__class__(frame_format=self.frame_format, total_frames=total_frames)
+    def __sub__(_Frame self, other):
+        cdef int total_frames
+        total_frames = int(self) - int(other)
+        return self.__class__(frame_format=self.frame_format, total_frames=total_frames)
     def __repr__(self):
         return '{self.__class__.__name__}: {self} - {self.frame_format}'.format(self=self)
     def __str__(self):

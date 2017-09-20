@@ -61,28 +61,14 @@ cdef class _FrameRate(object):
     @property
     def rounded(self):
         return self.__rounded
-    cpdef _coerce_value(_FrameRate self, other):
-        cdef object value
-        if isinstance(other, _FrameRate):
-            value = other.value
-        elif isinstance(other, (numbers.Number, Fraction)):
-            value = other
-        else:
-            value = NotImplemented
-        return value
-    cpdef _coerce_op(self, other, op, reverse_op=False):
-        cdef object other_value
-        other_value = self._coerce_value(other)
-        if other_value is NotImplemented:
-            return NotImplemented
-        if reverse_op:
-            return op(other_value, self.value)
-        return op(self.value, other_value)
     def __richcmp__(_FrameRate self, other, op):
         cdef int cmp_result
         cdef object other_value
-        other_value = self._coerce_value(other)
-        if other_value is NotImplemented:
+        if isinstance(other, _FrameRate):
+            other_value = other.value
+        elif isinstance(other, (numbers.Number, Fraction)):
+            other_value = other
+        else:
             return NotImplemented
         if self.value < other_value:
             cmp_result = -1
@@ -93,24 +79,34 @@ cdef class _FrameRate(object):
         return richcmp_helper(cmp_result, op)
     def __mul__(self, other):
         if not isinstance(self, _FrameRate):
-            return other._coerce_op(self, operator.mul, reverse_op=True)
-        return self._coerce_op(other, operator.mul)
+            return self * other.value
+        if isinstance(other, _FrameRate):
+            other = other.value
+        return self.value * other
     def __div__(self, other):
         if not isinstance(self, _FrameRate):
-            return other._coerce_op(self, operator.div, reverse_op=True)
-        return self._coerce_op(other, operator.div)
+            return self / other.value
+        if isinstance(other, _FrameRate):
+            other = other.value
+        return self.value / other
     def __truediv__(self, other):
         if not isinstance(self, _FrameRate):
-            return other._coerce_op(self, operator.truediv, reverse_op=True)
-        return self._coerce_op(other, operator.truediv)
+            return self / other.value
+        if isinstance(other, _FrameRate):
+            other = other.value
+        return self.value / other
     def __floordiv__(self, other):
         if not isinstance(self, _FrameRate):
-            return other._coerce_op(self, operator.floordiv, reverse_op=True)
-        return self._coerce_op(other, operator.floordiv)
+            return self // other.value
+        if isinstance(other, _FrameRate):
+            other = other.value
+        return self.value // other
     def __mod__(self, other):
         if not isinstance(self, _FrameRate):
-            return other._coerce_op(self, operator.mod, reverse_op=True)
-        return self._coerce_op(other, operator.mod)
+            return self % other.value
+        if isinstance(other, _FrameRate):
+            other = other.value
+        return self.value % other
     def __repr__(self):
         return '<FrameRate: {self} ({self.numerator}/{self.denom})>'.format(self=self)
     def __str__(self):
