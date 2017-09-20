@@ -1,5 +1,6 @@
 import sys
 from setuptools import setup, find_packages
+from distutils.extension import Extension
 from Cython.Build import cythonize
 import numpy
 
@@ -31,6 +32,13 @@ def get_long_description():
 if {'sdist', 'bdist_wheel'} & set(sys.argv):
     convert_readme()
 
+extensions = [
+    Extension('*', ['pyltc/*.pyx'],
+        compiler_directives={'linetrace':True},
+        include_dirs=[numpy.get_include()],
+    ),
+]
+
 setup(
     name = 'python-ltc',
     version = 'v0.0.3',
@@ -42,10 +50,7 @@ setup(
     packages=find_packages(exclude=['tests*']),
     include_package_data=True,
     install_requires=['numpy', 'scipy', 'JACK-Client'],
-    ext_modules=cythonize('pyltc/*.pyx',
-        compiler_directives={'linetrace':True},
-        include_path=[numpy.get_include()]
-    ),
+    ext_modules=cythonize(extensions),
     setup_requires=['pypandoc'],
     long_description=get_long_description(),
     classifiers = [
