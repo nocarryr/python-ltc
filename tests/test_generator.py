@@ -62,12 +62,13 @@ def test_datablock(ltc_frame_format):
 
 def test_wave_write(ltc_frame_format, tmpdir):
     from pyltc.tcgen import AudioGenerator
-    num_frames = 900
+
     g = AudioGenerator(
         use_current_time=True,
         bit_depth=16,
         frame_format=ltc_frame_format,
     )
+    num_frames = int(g.frame_format.rate * 300)
     if g.frame_format.drop_frame:
         df = 'DF'
     else:
@@ -79,8 +80,9 @@ def test_wave_write(ltc_frame_format, tmpdir):
     rs, b = wavfile.read(filename)
     assert rs == g.sample_rate
     assert np.array_equal(a, b)
-    if ltc_frame_format['rate'] == 29.97:
-        num_samples = float(g.samples_per_frame * num_frames)
-    else:
-        num_samples = float(g.samples_per_frame * num_frames)
-    assert b.size == num_samples
+
+    num_samples = int(g.samples_per_frame * num_frames)
+
+    sample_diff = num_samples - b.size
+
+    assert -1 <= sample_diff <= 1
