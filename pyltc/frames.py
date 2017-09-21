@@ -217,10 +217,14 @@ class Frame(Counter):
         self.value = kwargs.get('frames', self.value)
         self.total_frames = self.calc_total_frames()
     def from_dt(self, dt):
-        keys = ['hours', 'minutes', 'seconds']
-        d = {k: getattr(dt, k.rstrip('s')) for k in keys}
-        d['frames'] = self.microseconds_to_frame(dt.microsecond)
-        self.set(**d)
+        keys = ['hour', 'minute', 'second']
+        for key in keys:
+            val = getattr(dt, key)
+            obj = getattr(self, key)
+            obj.value = val
+        self.check_drop()
+        self.value = self.microseconds_to_frame(dt.microsecond)
+        self.total_frames = self.calc_total_frames()
     def microseconds_to_frame(self, microseconds):
         fr = self.frame_format.rate.float_value
         s = microseconds / 1e6
@@ -228,13 +232,20 @@ class Frame(Counter):
         if s in l:
             return l.index(s)
         closest = None
+        closest_diff = None
         for i, f in enumerate(l):
-            if closest is None or f < s:
-                closest = f
-            elif f > s:
-                if f - s < s - closest:
-                    return i
-                return i - 1
+            if s > f:
+                diff = s - f
+            else:
+                diff = f - s
+            if closest is None:
+                closest = i
+                closest_diff = diff
+            else:
+                if diff < closest_diff:
+                    closest = i
+                    closest_diff = diff
+        return closest
     def set_total_frames(self, total_frames):
         self.total_frames = total_frames
         fr = self.frame_format.rate
