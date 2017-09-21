@@ -34,7 +34,6 @@ if {'sdist', 'bdist_wheel'} & set(sys.argv):
 
 extensions = [
     Extension('*', ['pyltc/*.pyx'],
-        compiler_directives={'linetrace':True},
         include_dirs=[numpy.get_include()],
     ),
 ]
@@ -50,7 +49,7 @@ setup(
     packages=find_packages(exclude=['tests*']),
     include_package_data=True,
     install_requires=['numpy', 'scipy', 'JACK-Client'],
-    ext_modules=cythonize(extensions),
+    ext_modules=cythonize(extensions, compiler_directives={'linetrace':True}),
     setup_requires=['pypandoc'],
     long_description=get_long_description(),
     classifiers = [
