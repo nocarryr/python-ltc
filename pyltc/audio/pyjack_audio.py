@@ -189,6 +189,9 @@ class JackAudio(AudioBackend):
             self.client.connect('system:midi_capture_1', self.midiport)
         self.mtc_thread.start()
         self.mtc_thread.running.wait()
+        while not self.jack_ready:
+            time.sleep(.1)
+            self.check_jack_ready()
     def _stop(self):
         self.buffer_thread.stop()
         self.buffer_thread = None
