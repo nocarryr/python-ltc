@@ -113,6 +113,7 @@ class JackAudio(AudioBackend):
     def __init__(self, **kwargs):
         self._jack_ready = False
         super(JackAudio, self).__init__(**kwargs)
+        self.client_name = kwargs.get('client_name', 'LTCGenerator')
         self.enable_mtc = kwargs.get('enable_mtc', True)
         self.buffer = self.build_buffer()
         self.buffer_time_offset = self.calc_buffer_time_offset()
@@ -169,7 +170,7 @@ class JackAudio(AudioBackend):
     def init_backend(self):
         self.buffer_thread = BufferThread(backend=self)
         self.mtc_thread = MTCThread(backend=self)
-        c = self.client = jack.Client('LTCGenerator')
+        c = self.client = jack.Client(self.client_name)
         if not len(c.get_ports(is_midi=True, is_physical=True)):
             self.enable_mtc = False
         c.set_blocksize_callback(self.on_jack_blocksize)
