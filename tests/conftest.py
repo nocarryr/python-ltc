@@ -2,7 +2,10 @@ import shlex
 import subprocess
 import time
 import threading
-import queue
+try:
+    import queue
+except ImportError:
+    import Queue as queue
 
 import numpy as np
 import jack
