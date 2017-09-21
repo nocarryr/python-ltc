@@ -22,10 +22,12 @@ def ltc_frame_format(request):
     return request.param
 
 @pytest.fixture
-def jackd_server(request):
-    cmdstr = 'jackd -ddummy -r48000 -p1024'
+def jackd_server(request, monkeypatch, worker_id):
+    servername = 'pytest_server_{}'.format(worker_id)
+    cmdstr = 'jackd -n{} -ddummy -r48000 -p1024'.format(servername)
+    monkeypatch.setenv('JACK_DEFAULT_SERVER', servername)
     p = subprocess.Popen(shlex.split(cmdstr))
     def close_jackd():
         p.terminate()
     request.addfinalizer(close_jackd)
-    return p
+    return servername
