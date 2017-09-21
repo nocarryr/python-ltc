@@ -231,6 +231,11 @@ class JackAudio(AudioBackend):
         rs = self.sample_rate
         sample_offset = self.block_size * 2
         ts_offset = sample_offset / float(rs)
+        if not self.generator.use_current_time:
+            ts = float(self.generator.frame.total_frames / self.generator.frame.frame_format.rate)
+            frame = int(round(rs * ts) + sample_offset)
+            self.client.transport_frame = frame
+            return
         midnight = datetime.datetime.combine(datetime.date.today(), datetime.time())
         now = datetime.datetime.now()
         td = now - midnight
