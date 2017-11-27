@@ -228,6 +228,7 @@ def test_timecode(frame_format):
         assert frame3.total_frames == frame.total_frames == total_frames
         assert str(frame3) == frame_string
 
+        assert frame.total_frames == frame2.total_frames == frame3.total_frames == total_frames
         assert frame == frame2 == frame3 == total_frames
 
 
