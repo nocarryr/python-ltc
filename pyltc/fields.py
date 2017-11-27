@@ -20,8 +20,7 @@ class Field(object):
         v = [c == '1' for c in reversed(bin(self.value)[2:])]
         while len(v) < self.bit_length:
             v.append(False)
-        i = range(self.start_bit, self.start_bit + self.bit_length)
-        a.put(i, v)
+        a[self.start_bit:self.start_bit+self.bit_length] = v
     def get_block_value(self):
         return self.value << self.start_bit
     def get_value(self):
