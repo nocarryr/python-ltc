@@ -35,7 +35,9 @@ def jackd_server(request, monkeypatch, worker_id):
     class JackDServer(object):
         def __init__(self, worker_id):
             self.worker_id = worker_id
-            self.servername = 'pytest_server_{}'.format(self.worker_id)
+            test_mod = request.node.name.split('[')[0]
+            test_name = request.node.name.split('[')[1].rstrip(']')
+            self.servername = '{}.{}_{}'.format(test_mod, test_name, worker_id)
             self.proc = None
         def is_running(self):
             cmdstr = 'jack_wait -s{} -w -t1'.format(self.servername)
