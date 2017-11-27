@@ -32,14 +32,59 @@ def ltc_frame_format(request):
 
 @pytest.fixture
 def jackd_server(request, monkeypatch, worker_id):
-    servername = 'pytest_server_{}'.format(worker_id)
-    cmdstr = 'jackd -n{} -ddummy -r48000 -p1024'.format(servername)
-    monkeypatch.setenv('JACK_DEFAULT_SERVER', servername)
-    p = subprocess.Popen(shlex.split(cmdstr))
-    def close_jackd():
-        p.terminate()
-    request.addfinalizer(close_jackd)
-    return servername
+    class JackDServer(object):
+        def __init__(self, worker_id):
+            self.worker_id = worker_id
+            self.servername = 'pytest_server_{}'.format(self.worker_id)
+            self.proc = None
+        def is_running(self):
+            cmdstr = 'jack_wait -s{} -w -t1'.format(self.servername)
+            try:
+                resp = subprocess.check_output(shlex.split(cmdstr))
+            except subprocess.CalledProcessError as e:
+                return False
+            if isinstance(resp, bytes):
+                resp = resp.decode('UTF-8')
+            return 'server is available' in resp
+        def wait_for_stop(self):
+            cmdstr = 'jack_wait -s{} -q'.format(self.servername)
+            subprocess.check_call(shlex.split(cmdstr))
+        def wait_for_start(self):
+            cmdstr = 'jack_wait -s{} -w'.format(self.servername)
+            subprocess.check_call(shlex.split(cmdstr))
+        def start(self):
+            if self.is_running():
+                if self.proc is not None:
+                    return
+                self.wait_for_stop()
+            cmdstr = 'jackd -n{} -ddummy -r48000 -p1024'.format(self.servername)
+            self.proc = subprocess.Popen(shlex.split(cmdstr))
+            self.wait_for_start()
+        def stop(self):
+            p = self.proc
+            if p is None:
+                return
+            self.proc = None
+            p.terminate()
+            p.wait()
+            if self.is_running():
+                self.wait_for_stop()
+        def __enter__(self):
+            self.start()
+            return self
+        def __exit__(self, *args):
+            self.stop()
+        def __repr__(self):
+            return '<{self.__class__.__name__}: {self}>'.format(self=self)
+        def __str__(self):
+            return self.servername
+
+    server = JackDServer(worker_id)
+
+    monkeypatch.setenv('JACK_DEFAULT_SERVER', server.servername)
+    monkeypatch.setenv('JACK_NO_START_SERVER', '1')
+
+    return server
 
 @pytest.fixture
 def jack_listen_client(request, jackd_server, worker_id):
@@ -54,7 +99,7 @@ def jack_listen_client(request, jackd_server, worker_id):
             self.inport = None
             self.queue_thread = None
             self.worker_id = worker_id
-            self.servername = jackd_server
+            self.servername = jackd_server.servername
             self.client_name = 'PyTest_Listener_{}'.format(worker_id)
             self.generator_name = 'LTCGenerator_{}'.format(worker_id)
         def start(self):
@@ -126,4 +171,4 @@ def jack_listen_client(request, jackd_server, worker_id):
     listen_client = ListenClient()
     request.addfinalizer(listen_client.stop)
 
-    return listen_client
+    return {'client':listen_client, 'server':jackd_server}
