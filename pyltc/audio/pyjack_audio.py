@@ -113,6 +113,7 @@ class JackAudio(AudioBackend):
     def __init__(self, **kwargs):
         self._jack_ready = False
         super(JackAudio, self).__init__(**kwargs)
+        self.client_name = kwargs.get('client_name', 'LTCGenerator')
         self.enable_mtc = kwargs.get('enable_mtc', True)
         self.buffer = self.build_buffer()
         self.buffer_time_offset = self.calc_buffer_time_offset()
@@ -169,7 +170,7 @@ class JackAudio(AudioBackend):
     def init_backend(self):
         self.buffer_thread = BufferThread(backend=self)
         self.mtc_thread = MTCThread(backend=self)
-        c = self.client = jack.Client('LTCGenerator')
+        c = self.client = jack.Client(self.client_name)
         if not len(c.get_ports(is_midi=True, is_physical=True)):
             self.enable_mtc = False
         c.set_blocksize_callback(self.on_jack_blocksize)
@@ -188,6 +189,9 @@ class JackAudio(AudioBackend):
             self.client.connect('system:midi_capture_1', self.midiport)
         self.mtc_thread.start()
         self.mtc_thread.running.wait()
+        while not self.jack_ready:
+            time.sleep(.1)
+            self.check_jack_ready()
     def _stop(self):
         self.buffer_thread.stop()
         self.buffer_thread = None
@@ -230,6 +234,11 @@ class JackAudio(AudioBackend):
         rs = self.sample_rate
         sample_offset = self.block_size * 2
         ts_offset = sample_offset / float(rs)
+        if not self.generator.use_current_time:
+            ts = float(self.generator.frame.total_frames / self.generator.frame.frame_format.rate)
+            frame = int(round(rs * ts) + sample_offset)
+            self.client.transport_frame = frame
+            return
         midnight = datetime.datetime.combine(datetime.date.today(), datetime.time())
         now = datetime.datetime.now()
         td = now - midnight
