@@ -30,8 +30,16 @@ def frame_format(request):
 def ltc_frame_format(request):
     return request.param
 
+@pytest.fixture(scope='session')
+def _worker_id(request):
+    if hasattr(request.config, 'slaveinput'):
+        return request.config.slaveinput['slaveid']
+    else:
+        return 'master'
+
 @pytest.fixture
-def jackd_server(request, monkeypatch, worker_id):
+def jackd_server(request, monkeypatch, _worker_id):
+
     class JackDServer(object):
         def __init__(self, worker_id):
             self.worker_id = worker_id
@@ -81,7 +89,7 @@ def jackd_server(request, monkeypatch, worker_id):
         def __str__(self):
             return self.servername
 
-    server = JackDServer(worker_id)
+    server = JackDServer(_worker_id)
 
     monkeypatch.setenv('JACK_DEFAULT_SERVER', server.servername)
     monkeypatch.setenv('JACK_NO_START_SERVER', '1')
@@ -89,7 +97,8 @@ def jackd_server(request, monkeypatch, worker_id):
     return server
 
 @pytest.fixture
-def jack_listen_client(request, jackd_server, worker_id):
+def jack_listen_client(request, jackd_server, _worker_id):
+    worker_id = _worker_id
 
     class ListenClient(object):
         def __init__(self):
