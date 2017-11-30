@@ -66,13 +66,22 @@ def test_datablock(ltc_frame_format):
 
 def test_wave_write(ltc_frame_format, tmpdir):
     from pyltc.tcgen import AudioGenerator
+    from pyltc.frames import FrameFormat
+
+    fmt = FrameFormat(**ltc_frame_format)
 
     g = AudioGenerator(
         use_current_time=True,
         bit_depth=16,
-        frame_format=ltc_frame_format,
+        frame_format=fmt,
     )
-    num_frames = int(g.frame_format.rate * 300)
+    num_frames = int(g.frame_format.rate * 60)
+    num_samples = num_frames / g.frame_format.rate * g.sample_rate
+    while num_samples.denominator != 1:
+        num_frames += 1
+        num_samples = num_frames / g.frame_format.rate * g.sample_rate
+    print('num_frames={}, num_samples={}'.format(num_frames, num_samples))
+
     if g.frame_format.drop_frame:
         df = 'DF'
     else:
@@ -85,7 +94,6 @@ def test_wave_write(ltc_frame_format, tmpdir):
     assert rs == g.sample_rate
     assert np.array_equal(a, b)
 
-    num_samples = int(g.samples_per_frame * num_frames)
 
     sample_diff = num_samples - b.size
 

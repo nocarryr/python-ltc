@@ -2,7 +2,8 @@ import numpy as np
 cimport numpy as np
 
 cdef class _Resampler(object):
-    cdef public int out_sample_rate, in_sample_rate, bit_depth
+    cdef public object out_sample_rate, in_sample_rate
+    cdef public int bit_depth
     cdef public bint use_float_samples
     cdef public float y_min, y_max
     cdef public np.ndarray in_periods, out_periods, nans
@@ -69,7 +70,7 @@ cdef class _LTCDataBlockSampler(_Resampler):
             a[i+1] = y
             y = next(y_iter)
             i += 2
-        a = np.repeat(a, self.in_periods.size / 160)
+        a = np.repeat(a, int(self.in_periods.size / 160))
         if not self.use_float_samples:
             y_max = int(self.y_max / 2)
             a *= y_max

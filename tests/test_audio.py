@@ -5,9 +5,12 @@ def test_jackaudio(jack_listen_client, ltc_frame_format):
     import datetime
     from pyltc.tcgen import AudioGenerator
     from pyltc.audio import pyjack_audio
+    from pyltc.frames import FrameFormat
+
+    fmt = FrameFormat(**ltc_frame_format)
 
     generator = AudioGenerator(
-        frame_format=ltc_frame_format,
+        frame_format=fmt,
         bit_depth=32,
         use_float_samples=True,
         dtype=np.dtype(np.float32),
@@ -19,7 +22,7 @@ def test_jackaudio(jack_listen_client, ltc_frame_format):
     start_hmsf = start_frame.get_hmsf_values()
 
     client_gen = AudioGenerator(
-        frame_format=ltc_frame_format,
+        frame_format=fmt,
         bit_depth=32,
         use_float_samples=True,
         dtype=np.dtype(np.float32),

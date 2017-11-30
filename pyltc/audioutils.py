@@ -9,14 +9,13 @@ from pyltc._audioutils import _Resampler, _LTCDataBlockSampler
 
 class Resampler(_Resampler):
     def write_wavefile(self, a, filename):
-        wavfile.write(filename, self.out_sample_rate, a)
+        wavfile.write(filename, int(self.out_sample_rate), a)
 
 class FrameResampler(Resampler):
     def __init__(self, **kwargs):
         self.frame_rate = kwargs.get('frame_rate')
-        self.frame_samples = int(self.frame_rate * 100)
         out_sample_rate = kwargs.get('out_sample_rate')
-        kwargs.setdefault('in_sample_rate', int(out_sample_rate / self.frame_rate.float_value))
+        kwargs.setdefault('in_sample_rate', out_sample_rate / self.frame_rate)
         super(FrameResampler, self).__init__(**kwargs)
         self.data_block_sampler = LTCDataBlockSampler(
             out_sample_rate=self.in_sample_rate,
@@ -32,7 +31,7 @@ class LTCDataBlockSampler(_LTCDataBlockSampler):
         kwargs.setdefault('in_sample_rate', 160 * 10)
         super(LTCDataBlockSampler, self).__init__(**kwargs)
     def write_wavefile(self, a, filename):
-        wavfile.write(filename, self.out_sample_rate, a)
+        wavfile.write(filename, int(self.out_sample_rate), a)
 
 class ZeroCrossLocator(object):
     def __init__(self, **kwargs):

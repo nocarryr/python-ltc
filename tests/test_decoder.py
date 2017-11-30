@@ -3,6 +3,7 @@ import numpy as np
 def test_decode():
     from pyltc.tcgen import AudioGenerator
     from pyltc.audioutils import LTCDataBlockDecoder
+    from pyltc.frames import FrameFormat
     generated = []
     decoded = []
     def on_datablock(datablock):
@@ -10,7 +11,8 @@ def test_decode():
     g = AudioGenerator(
         use_current_time=False,
         bit_depth=16,
-        frame_format={'rate':29.97, 'drop_frame':True},
+        frame_format=FrameFormat(rate=29.97, drop_frame=True),
+        use_float_samples=True,
     )
     decoder = LTCDataBlockDecoder(
         datablock_callback=on_datablock,

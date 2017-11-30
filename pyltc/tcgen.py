@@ -87,14 +87,14 @@ class AudioGenerator(Generator):
         if self.use_current_time:
             self.set_frame_from_dt()
         rs = self.sample_rate = kwargs.get('sample_rate', 48000)
-        fr = self.frame_format.rate
-        self.samples_per_frame = float(rs / fr)
-        if int(self.samples_per_frame) == float(self.samples_per_frame):
+        fr = self.frame_format.rate.value
+        self.samples_per_frame = rs / fr
+        if self.samples_per_frame.denominator == 1:
             self.even_samples = True
         else:
             self.even_samples = False
-            self.num_samples = 0
-            self.frame_count = 0
+        self.num_samples = 0
+        self.frame_count = 0
         self.use_float_samples = kwargs.get('use_float_samples', False)
         self.bit_depth = kwargs.get('bit_depth', 8)
         self.dtype = kwargs.get('dtype')
