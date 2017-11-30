@@ -1,4 +1,4 @@
-from fractions import Fraction
+from quicktions import Fraction
 
 import pytest
 

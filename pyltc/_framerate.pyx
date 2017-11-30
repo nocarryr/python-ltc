@@ -1,6 +1,6 @@
 import numbers
 import operator
-from fractions import Fraction
+from quicktions import Fraction
 
 cdef inline bint richcmp_helper(int compare, int op):
     if op == 2: # ==

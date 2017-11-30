@@ -1,7 +1,6 @@
 import time
 import threading
 import datetime
-from fractions import Fraction
 
 import numpy as np
 

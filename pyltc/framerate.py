@@ -1,6 +1,6 @@
 import numbers
 import operator
-from fractions import Fraction
+from quicktions import Fraction
 
 from pyltc._framerate import _FrameRate, _FrameFormat
 

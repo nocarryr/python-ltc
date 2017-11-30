@@ -1,6 +1,5 @@
 import numbers
 import operator
-from fractions import Fraction
 
 from pyltc.framerate import FrameRate, FrameFormat
 

@@ -12,9 +12,13 @@ def bools_to_int(b):
 
 def test_datablock(ltc_frame_format):
     from pyltc.tcgen import Generator
+    from pyltc.frames import FrameFormat
+
+    fmt = FrameFormat(**ltc_frame_format)
+
     g = Generator(
         use_current_time=False,
-        frame_format=ltc_frame_format,
+        frame_format=fmt,
     )
     sync_word = [False, False]
     sync_word.extend([True] * 12)

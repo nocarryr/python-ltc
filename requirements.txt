@@ -2,3 +2,4 @@ numpy
 scipy
 JACK-Client
 Cython>=0.26
+quicktions
