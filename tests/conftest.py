@@ -2,6 +2,7 @@ import shlex
 import subprocess
 import time
 import threading
+import traceback
 try:
     import queue
 except ImportError:
@@ -61,7 +62,37 @@ def jackd_server(request, monkeypatch, _worker_id):
             subprocess.check_call(shlex.split(cmdstr))
         def wait_for_start(self):
             cmdstr = 'jack_wait -s{} -w'.format(self.servername)
-            subprocess.check_call(shlex.split(cmdstr))
+            last_exc = None
+            num_attempts = 0
+            wait_complete = False
+            while num_attempts <= 5:
+                if wait_complete:
+                    if self.is_running():
+                        last_exc = None
+                        break
+                    else:
+                        last_exc = Exception('Could not connect to server "{}"'.format(self.servername))
+                else:
+                    try:
+                        subprocess.check_call(shlex.split(cmdstr))
+                        last_exc = None
+                        wait_complete = True
+                        num_attempts = 0
+                        if self.is_running():
+                            break
+                    except subprocess.CalledProcessError as e:
+                        if e.returncode != 1:
+                            raise
+                        last_exc = traceback.format_exc()
+                num_attempts += 1
+                time.sleep(.2)
+            if last_exc is not None:
+                msg = [
+                    'Exception caught while starting jackd server "{}"'.format(self.servername),
+                    'Traceback:',
+                    last_exc,
+                ]
+                raise Exception('\n'.join(msg))
         def start(self):
             if self.is_running():
                 if self.proc is not None:
@@ -79,11 +110,19 @@ def jackd_server(request, monkeypatch, _worker_id):
             p.wait()
             if self.is_running():
                 self.wait_for_stop()
-        def __enter__(self):
-            self.start()
+        def _enter(self):
+            try:
+                self.start()
+            except:
+                self.stop()
+                raise
             return self
-        def __exit__(self, *args):
+        def _exit(self, *args):
             self.stop()
+        def __enter__(self):
+            return self._enter()
+        def __exit__(self, *args):
+            return self._exit(*args)
         def __repr__(self):
             return '<{self.__class__.__name__}: {self}>'.format(self=self)
         def __str__(self):
@@ -133,14 +172,33 @@ def jack_listen_client(request, jackd_server, _worker_id):
                 self.queue_thread.stop()
                 self.queue_thread = None
             if self.inport is not None:
-                self.inport.disconnect()
-                self.inport.unregister()
+                try:
+                    self.inport.disconnect()
+                    self.inport.unregister()
+                except:
+                    traceback.print_exc()
                 self.inport = None
             if self.client is not None:
-                self.client.deactivate()
-                self.client.close()
+                try:
+                    self.client.deactivate()
+                    self.client.close()
+                except:
+                    traceback.print_exc()
                 self.client = None
             self.jack_ready = False
+        def _enter(self):
+            try:
+                self.start()
+            except:
+                self.stop()
+                raise
+            return self
+        def _exit(self, *args):
+            self.stop()
+        def __enter__(self):
+            return self._enter()
+        def __exit__(self, *args):
+            return self._exit()
         def check_jack_ready(self):
             if self.first_timestamp is not None:
                 self.jack_ready = True
@@ -159,6 +217,7 @@ def jack_listen_client(request, jackd_server, _worker_id):
             self.listen_client = listen_client
             self.running = threading.Event()
             self.stopped = threading.Event()
+            self.daemon = True
         def run(self):
             self.running.set()
             while self.running.is_set():

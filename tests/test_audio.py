@@ -31,20 +31,16 @@ def test_jackaudio(jack_listen_client, ltc_frame_format):
     start_dt = datetime.datetime.now()
 
     with jack_listen_client['server'] as server:
-        assert server.is_running()
         aud = pyjack_audio.JackAudio(
             generator=generator,
             client_name=jack_listen_client['client'].generator_name,
         )
-        aud.start()
-
-        jack_listen_client['client'].start()
-
-        time.sleep(10)
-
-        # Stop the receiver first to avoid empty samples at the end
-        jack_listen_client['client'].stop()
-        aud.stop()
+        try:
+            aud.start()
+            with jack_listen_client['client']:
+                time.sleep(10)
+        finally:
+            aud.stop()
 
         received_samples = jack_listen_client['client'].data
 
