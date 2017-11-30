@@ -32,7 +32,7 @@ cdef class _FrameRate(object):
         self.__numerator = numerator
         self.__denom = denom
         if self.denom == 1:
-            self.__value = numerator
+            self.__value = Fraction(numerator, denom)
             self.__rounded = numerator
         else:
             self.__value = Fraction(numerator, denom)
