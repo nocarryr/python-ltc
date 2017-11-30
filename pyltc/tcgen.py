@@ -127,8 +127,7 @@ class AudioGenerator(Generator):
                 offset_samples = np.array([samples[-1]] * offset)
                 samples = np.concatenate((samples, offset_samples))
             elif offset < 0:
-                i = int(self.current_offset)
-                samples = samples[:-offset]
+                samples = samples[:offset]
         return samples
     def generate_frames(self, num_frames, only_zero=False):
         a = None
