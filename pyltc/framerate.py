@@ -1,5 +1,4 @@
 import numbers
-import operator
 from quicktions import Fraction
 
 from pyltc._framerate import _FrameRate, _FrameFormat

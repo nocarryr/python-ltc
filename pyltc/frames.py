@@ -1,5 +1,3 @@
-import operator
-
 from pyltc.framerate import FrameRate, FrameFormat
 from pyltc._frames import _Frame, Second, Minute, Hour
 

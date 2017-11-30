@@ -1,8 +1,4 @@
-import wave
-
 import numpy as np
-from scipy.interpolate import interp1d
-from scipy import signal
 import scipy.io.wavfile as wavfile
 
 from pyltc._audioutils import _Resampler, _LTCDataBlockSampler
