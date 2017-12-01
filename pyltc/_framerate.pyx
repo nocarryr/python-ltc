@@ -16,6 +16,8 @@ cdef inline bint richcmp_helper(int compare, int op):
     elif op == 5: # >=
         return compare >= 0
 
+cdef dict FRAME_TIMES = {}
+
 cdef class _FrameRate(object):
     defaults = {
         24:(24, 1),
@@ -61,6 +63,19 @@ cdef class _FrameRate(object):
     @property
     def rounded(self):
         return self.__rounded
+    @property
+    def frame_times(self):
+        cdef list frame_times
+        if self.__value in FRAME_TIMES:
+            frame_times = FRAME_TIMES[self.__value]
+        else:
+            frame_times = self._build_frame_times()
+            FRAME_TIMES[self.__value] = frame_times
+        return frame_times
+    cdef list _build_frame_times(self):
+        cdef float fr = self.__float_value
+        cdef int i
+        return [i / fr for i in range(int(round(fr)))]
     def __richcmp__(_FrameRate self, other, op):
         cdef int cmp_result
         cdef object other_value

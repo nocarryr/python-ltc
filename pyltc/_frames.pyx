@@ -66,7 +66,7 @@ cdef class _Frame(Counter):
     cdef public Second second
     cdef public Minute minute
     cdef public Hour hour
-    cdef public list df_frame_numbers, frame_times
+    cdef public list df_frame_numbers
     cdef public int total_frames
     cdef public bint drop_enabled
     def __cinit__(self, **kwargs):
@@ -93,11 +93,9 @@ cdef class _Frame(Counter):
                 self.set(**hmsf)
         if not hasattr(self, 'total_frames'):
             self.total_frames = self.calc_total_frames()
-        self.frame_times = self._build_frame_times()
-    cdef list _build_frame_times(self):
-        cdef float fr = self.frame_format.rate.float_value
-        cdef int i
-        return [i / fr for i in range(int(round(fr)))]
+    @property
+    def frame_times(self):
+        return self.frame_format.rate.frame_times
     cpdef incr(self):
         cdef int value
         self.total_frames += 1
