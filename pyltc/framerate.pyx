@@ -31,7 +31,7 @@ cdef class FrameRate(object):
     cdef int __numerator, __denom, __rounded
     cdef object __value
     cdef float __float_value
-    def __init__(self, int numerator, int denom=1):
+    def __cinit__(self, int numerator, int denom=1):
         self.__numerator = numerator
         self.__denom = denom
         if self.denom == 1:
@@ -145,7 +145,7 @@ cdef class FrameFormat(object):
     cdef public FrameRate rate
     cdef public bint drop_frame
     cdef public char *tc_fmt_str
-    def __init__(self, **kwargs):
+    def __cinit__(self, **kwargs):
         cdef object rate
         rate = kwargs.get('rate')
         if isinstance(rate, numbers.Number):
