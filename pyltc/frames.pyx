@@ -235,6 +235,12 @@ cdef class Frame(Counter):
             self.value,
         ]
         return l
+    cpdef get_hmsf_dict(self):
+        cdef list hmsf
+        cdef dict d
+        hmsf = self.get_hmsf_values()
+        d = hmsf_to_dict(hmsf)
+        return d
     cpdef get_tc_string(self):
         cdef list hmsf = self.get_hmsf_values()
         return self.frame_format.format_tc_string(hmsf)
