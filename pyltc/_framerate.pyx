@@ -130,15 +130,16 @@ cdef class _FrameRate(object):
         return '{:05.2f}'.format(self.float_value)
 
 cdef class _FrameFormat(object):
-    cdef public object rate
+    cdef public _FrameRate rate
     cdef public bint drop_frame
     cdef public char *tc_fmt_str
     def __init__(self, **kwargs):
+        cdef object rate
         rate = kwargs.get('rate')
         if isinstance(rate, numbers.Number):
             rate = _FrameRate.from_float(rate)
         self.rate = rate
-        self.drop_frame = kwargs.get('drop_frame')
+        self.drop_frame = kwargs.get('drop_frame', False)
         if self.drop_frame:
             self.tc_fmt_str = '{:02d}:{:02d}:{:02d};{:02d}'
         else:
