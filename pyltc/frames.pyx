@@ -99,7 +99,6 @@ cdef class Frame(Counter):
     cpdef from_dt(self, dt):
         cdef dict d
         cdef str key
-        keys = ['hours', 'minutes', 'seconds']
         d = {key: getattr(dt, key.rstrip('s')) for key in HMSF_KEYS[:3]}
         d['frames'] = self.microseconds_to_frame(dt.microsecond)
         self._set_from_kwargs(d)
