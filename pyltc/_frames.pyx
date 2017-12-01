@@ -3,6 +3,21 @@ import operator
 
 from pyltc.framerate import FrameRate, FrameFormat
 
+HMSF_KEYS = ('hours', 'minutes', 'seconds', 'frames')
+
+cdef inline dict hmsf_from_kwargs(dict kwargs):
+    cdef str key
+    return {key:kwargs.get(key) for key in HMSF_KEYS if key in kwargs}
+
+cdef inline dict hmsf_to_dict(list hmsf):
+    cdef str key
+    cdef int val
+    return {key:val for key, val in zip(HMSF_KEYS, hmsf)}
+
+cdef inline list hmsf_dict_to_list(dict hmsf_dict):
+    cdef str key
+    return [hmsf_dict.get(key) for key in HMSF_KEYS]
+
 cdef inline bint richcmp_helper(int compare, int op):
     if op == 2: # ==
         return compare == 0
@@ -20,18 +35,15 @@ cdef inline bint richcmp_helper(int compare, int op):
 cdef class Counter(object):
     cdef public object frame
     cdef public int _value
-    def __init__(self, **kwargs):
+    def __cinit__(self, **kwargs):
         self.frame = kwargs.get('frame')
         self._value = 0
     @property
     def value(self):
-        v = getattr(self, '_value', None)
-        if v is None:
-            v = self._value = 0
-        return v
+        return self._value
     @value.setter
-    def value(self, value):
-        self.set_value(int(value))
+    def value(self, int value):
+        self.set_value(value)
     cpdef set_value(self, int value):
         self._value = value
     def __iadd__(self, int i):
@@ -50,10 +62,16 @@ cdef class Counter(object):
         self._value -= 1
 
 cdef class _Frame(Counter):
-    cdef public object frame_format, second, minute, hour, df_frame_numbers, frame_times
+    cdef public object frame_format
+    cdef public Second second
+    cdef public Minute minute
+    cdef public Hour hour
+    cdef public list df_frame_numbers, frame_times
     cdef public int total_frames
     cdef public bint drop_enabled
-    def __init__(self, **kwargs):
+    def __cinit__(self, **kwargs):
+        cdef object total_frames
+        cdef dict hmsf
         self.frame_format = kwargs.get('frame_format')
         self._value = 0
         self.second = Second(frame=self)
@@ -61,23 +79,25 @@ cdef class _Frame(Counter):
         self.hour = Hour(frame=self)
         self.drop_enabled = False
         if self.frame_format.rate.rounded == 30:
-            self.df_frame_numbers = (0, 1)
+            self.df_frame_numbers = [0, 1]
         elif self.frame_format.rate.rounded == 60:
-            self.df_frame_numbers = (0, 1, 2, 3)
+            self.df_frame_numbers = [0, 1, 2, 3]
         else:
             self.df_frame_numbers = kwargs.get('df_frame_numbers', [])
         total_frames = kwargs.get('total_frames')
         if total_frames is not None:
             self.set_total_frames(total_frames)
         else:
-            keys = ['hours', 'minutes', 'seconds', 'frames']
-            hmsf = {k:kwargs.get(k) for k in keys if k in kwargs}
+            hmsf = hmsf_from_kwargs(kwargs)
             if len(hmsf):
                 self.set(**hmsf)
         if not hasattr(self, 'total_frames'):
             self.total_frames = self.calc_total_frames()
-        fr = self.frame_format.rate.float_value
-        self.frame_times = [i / fr for i in range(int(round(fr)))]
+        self.frame_times = self._build_frame_times()
+    cdef list _build_frame_times(self):
+        cdef float fr = self.frame_format.rate.float_value
+        cdef int i
+        return [i / fr for i in range(int(round(fr)))]
     cpdef incr(self):
         cdef int value
         self.total_frames += 1
@@ -88,6 +108,7 @@ cdef class _Frame(Counter):
         self.value = value
     cpdef decr(self):
         cdef int value
+        cdef bint decr_second
         self.total_frames -= 1
         value = self.value - 1
         decr_second = False
@@ -105,15 +126,20 @@ cdef class _Frame(Counter):
             value = self.df_frame_numbers[-1] + 1
         self._value = value
     def set(self, **kwargs):
-        cdef object keys
-        cdef int i
-        keys = ['hours', 'minutes', 'seconds', 'frames']
-        hmsf = self.get_hmsf_values()
-        for i in range(4):
-            if keys[i] in kwargs and kwargs[keys[i]] is not None:
-                hmsf[i] = kwargs[keys[i]]
-        self._set(hmsf)
-    cpdef _set(self, hmsf):
+        self._set_from_kwargs(kwargs)
+    cdef _set_from_kwargs(self, dict kwargs):
+        cdef list hmsf_list = self.get_hmsf_values()
+        cdef dict hmsf_dict
+        cdef str key
+
+        hmsf_dict = hmsf_to_dict(hmsf_list)
+        for key in HMSF_KEYS:
+            if key in kwargs and kwargs[key] is not None:
+                hmsf_dict[key] = kwargs[key]
+
+        hmsf_list = hmsf_dict_to_list(hmsf_dict)
+        self._set(hmsf_list)
+    cpdef _set(self, list hmsf):
         self.hour.value = hmsf[0]
         self.minute.value = hmsf[1]
         self.second.value = hmsf[2]
@@ -146,10 +172,10 @@ cdef class _Frame(Counter):
         self.check_drop()
     cpdef calc_total_frames(self):
         cdef int seconds, frames, drop_num, total_dropped, total_minutes
+        cdef int fr = self.frame_format.rate.rounded
         seconds = self.second.value
         seconds += self.minute.value * 60
         seconds += self.hour.value * 3600
-        fr = self.frame_format.rate.rounded
         frames = seconds * fr
         frames += self.value
 
@@ -164,7 +190,7 @@ cdef class _Frame(Counter):
             return
         self.drop_enabled = self.second.value == 0 and self.minute.value % 10 != 0
     cpdef get_hmsf(self):
-        cdef object l
+        cdef list l
         l = [
             self.hour,
             self.minute,
@@ -173,7 +199,7 @@ cdef class _Frame(Counter):
         ]
         return l
     cpdef get_hmsf_values(self):
-        cdef object l
+        cdef list l
         l = [
             self.hour.value,
             self.minute.value,
@@ -182,7 +208,8 @@ cdef class _Frame(Counter):
         ]
         return l
     cpdef get_tc_string(self):
-        return self.frame_format.format_tc_string(self.get_hmsf_values())
+        cdef list hmsf = self.get_hmsf_values()
+        return self.frame_format.format_tc_string(hmsf)
     def __iadd__(_Frame self, other):
         cdef int total_frames
         total_frames = int(other)
