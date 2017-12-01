@@ -15,7 +15,7 @@ def test_frame_rate():
 
         frac_val = Fraction(numerator, denom)
 
-        frame_rate = FrameRate(numerator, denom)
+        frame_rate = FrameRate.create(numerator, denom)
         assert frame_rate.value == frac_val
 
         assert FrameRate.from_float(flt_val) == frame_rate
@@ -28,13 +28,13 @@ def test_frame_rate():
         assert int(num_denom_str.split('/')[0]) == frame_rate.numerator
         assert int(num_denom_str.split('/')[1]) == frame_rate.denom
 
-        assert frame_rate.value in FrameRate._registry
+        assert frame_rate.value in FrameRate._get_registry()
         frame_rate_objs.append(frame_rate)
 
     for i, frame_rate in enumerate(frame_rate_objs):
 
         ## FrameRate._registry check
-        frame_rate2 = FrameRate(frame_rate.numerator, frame_rate.denom)
+        frame_rate2 = FrameRate.create(frame_rate.numerator, frame_rate.denom)
         assert frame_rate is frame_rate2
         assert id(frame_rate) == id(frame_rate2)
 
@@ -85,7 +85,7 @@ def test_frame_rate_ops():
     from pyltc.frames import FrameRate
 
     for flt_val, args in FrameRate.defaults.items():
-        frame_rate = FrameRate(*args)
+        frame_rate = FrameRate.create(*args)
 
         for frame_count in range(1, 43202):
             fr_secs = float(frame_rate * frame_count)

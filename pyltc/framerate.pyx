@@ -17,8 +17,9 @@ cdef inline bint richcmp_helper(int compare, int op):
         return compare >= 0
 
 cdef dict FRAME_TIMES = {}
+cdef dict FRAME_RATE_REGISTRY = {}
 
-cdef class _FrameRate(object):
+cdef class FrameRate(object):
     defaults = {
         24:(24, 1),
         25:(25, 1),
@@ -41,11 +42,22 @@ cdef class _FrameRate(object):
             self.__rounded = round(self.__value)
         self.__float_value = float(self.__value)
     @classmethod
+    def create(cls, int numerator, int denom=1):
+        key = Fraction(numerator, denom)
+        if key in FRAME_RATE_REGISTRY:
+            return FRAME_RATE_REGISTRY[key]
+        obj = cls(numerator, denom)
+        FRAME_RATE_REGISTRY[key] = obj
+        return obj
+    @staticmethod
+    def _get_registry():
+        return FRAME_RATE_REGISTRY
+    @classmethod
     def from_float(cls, value):
         if value not in cls.defaults:
             raise Exception('FrameRate definition not found for {}'.format(value))
         numerator, denom = cls.defaults[value]
-        return cls(numerator, denom)
+        return cls.create(numerator, denom)
     @property
     def numerator(self):
         return self.__numerator
@@ -76,10 +88,10 @@ cdef class _FrameRate(object):
         cdef float fr = self.__float_value
         cdef int i
         return [i / fr for i in range(int(round(fr)))]
-    def __richcmp__(_FrameRate self, other, op):
+    def __richcmp__(FrameRate self, other, op):
         cdef int cmp_result
         cdef object other_value
-        if isinstance(other, _FrameRate):
+        if isinstance(other, FrameRate):
             other_value = other.value
         elif isinstance(other, (numbers.Number, Fraction)):
             other_value = other
@@ -93,33 +105,33 @@ cdef class _FrameRate(object):
             cmp_result = 0
         return richcmp_helper(cmp_result, op)
     def __mul__(self, other):
-        if not isinstance(self, _FrameRate):
+        if not isinstance(self, FrameRate):
             return self * other.value
-        if isinstance(other, _FrameRate):
+        if isinstance(other, FrameRate):
             other = other.value
         return self.value * other
     def __div__(self, other):
-        if not isinstance(self, _FrameRate):
+        if not isinstance(self, FrameRate):
             return self / other.value
-        if isinstance(other, _FrameRate):
+        if isinstance(other, FrameRate):
             other = other.value
         return self.value / other
     def __truediv__(self, other):
-        if not isinstance(self, _FrameRate):
+        if not isinstance(self, FrameRate):
             return self / other.value
-        if isinstance(other, _FrameRate):
+        if isinstance(other, FrameRate):
             other = other.value
         return self.value / other
     def __floordiv__(self, other):
-        if not isinstance(self, _FrameRate):
+        if not isinstance(self, FrameRate):
             return self // other.value
-        if isinstance(other, _FrameRate):
+        if isinstance(other, FrameRate):
             other = other.value
         return self.value // other
     def __mod__(self, other):
-        if not isinstance(self, _FrameRate):
+        if not isinstance(self, FrameRate):
             return self % other.value
-        if isinstance(other, _FrameRate):
+        if isinstance(other, FrameRate):
             other = other.value
         return self.value % other
     def __repr__(self):
@@ -129,15 +141,15 @@ cdef class _FrameRate(object):
             return str(self.numerator)
         return '{:05.2f}'.format(self.float_value)
 
-cdef class _FrameFormat(object):
-    cdef public _FrameRate rate
+cdef class FrameFormat(object):
+    cdef public FrameRate rate
     cdef public bint drop_frame
     cdef public char *tc_fmt_str
     def __init__(self, **kwargs):
         cdef object rate
         rate = kwargs.get('rate')
         if isinstance(rate, numbers.Number):
-            rate = _FrameRate.from_float(rate)
+            rate = FrameRate.from_float(rate)
         self.rate = rate
         self.drop_frame = kwargs.get('drop_frame', False)
         if self.drop_frame:
@@ -146,7 +158,7 @@ cdef class _FrameFormat(object):
             self.tc_fmt_str = '{:02d}:{:02d}:{:02d}:{:02d}'
     cpdef format_tc_string(self, hmsf):
         return self.tc_fmt_str.decode('UTF-8').format(*hmsf)
-    def __richcmp__(_FrameFormat self, _FrameFormat other, int op):
+    def __richcmp__(FrameFormat self, FrameFormat other, int op):
         cdef object eq
         eq = False
         if self.drop_frame is other.drop_frame:
