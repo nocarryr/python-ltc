@@ -61,7 +61,7 @@ cdef class Counter(object):
     cpdef decr(self):
         self._value -= 1
 
-cdef class _Frame(Counter):
+cdef class Frame(Counter):
     cdef public object frame_format
     cdef public Second second
     cdef public Minute minute
@@ -96,6 +96,36 @@ cdef class _Frame(Counter):
     @property
     def frame_times(self):
         return self.frame_format.rate.frame_times
+    cpdef from_dt(self, dt):
+        cdef dict d
+        cdef str key
+        keys = ['hours', 'minutes', 'seconds']
+        d = {key: getattr(dt, key.rstrip('s')) for key in HMSF_KEYS[:3]}
+        d['frames'] = self.microseconds_to_frame(dt.microsecond)
+        self._set_from_kwargs(d)
+    cpdef microseconds_to_frame(self, microseconds):
+        cdef float fr, s, f
+        cdef list l
+        cdef int i
+        cdef object closest
+        fr = self.frame_format.rate.float_value
+        s = microseconds / 1e6
+        l = self.frame_times
+        if s in l:
+            return l.index(s)
+        closest = None
+        for i, f in enumerate(l):
+            if closest is None or f < s:
+                closest = f
+            elif f > s:
+                if f - s < s - closest:
+                    return i
+                return i - 1
+    def copy(self):
+        return self.__class__(
+            frame_format=self.frame_format,
+            total_frames=self.total_frames,
+        )
     cpdef incr(self):
         cdef int value
         self.total_frames += 1
@@ -208,7 +238,7 @@ cdef class _Frame(Counter):
     cpdef get_tc_string(self):
         cdef list hmsf = self.get_hmsf_values()
         return self.frame_format.format_tc_string(hmsf)
-    def __iadd__(_Frame self, other):
+    def __iadd__(Frame self, other):
         cdef int total_frames
         total_frames = int(other)
         if total_frames == 1:
@@ -216,7 +246,7 @@ cdef class _Frame(Counter):
         else:
             self.set_total_frames(self.total_frames + total_frames)
         return self
-    def __isub__(_Frame self, other):
+    def __isub__(Frame self, other):
         cdef int total_frames
         total_frames = int(other)
         if total_frames == 1:
@@ -226,7 +256,7 @@ cdef class _Frame(Counter):
         return self
     def __int__(self):
         return self.total_frames
-    def __richcmp__(_Frame self, other, int op):
+    def __richcmp__(Frame self, other, int op):
         cdef int self_total_frames, other_total_frames, cmp_result
         self_total_frames = int(self)
         other_total_frames = int(other)
@@ -237,11 +267,11 @@ cdef class _Frame(Counter):
         else:
             cmp_result = 0
         return richcmp_helper(cmp_result, op)
-    def __add__(_Frame self, other):
+    def __add__(Frame self, other):
         cdef int total_frames
         total_frames = int(self) + int(other)
         return self.__class__(frame_format=self.frame_format, total_frames=total_frames)
-    def __sub__(_Frame self, other):
+    def __sub__(Frame self, other):
         cdef int total_frames
         total_frames = int(self) - int(other)
         return self.__class__(frame_format=self.frame_format, total_frames=total_frames)
