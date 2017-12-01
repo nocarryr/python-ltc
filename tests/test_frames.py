@@ -202,24 +202,25 @@ def test_timecode(frame_format):
         assert fmt_repr.split('(')[1].split(')')[0] == 'Non-Drop'
 
     frame = Frame(frame_format=fmt)
+    frame2 = Frame(frame_format=fmt)
+
+    hmsf_keys = ['hours', 'minutes', 'seconds', 'frames']
 
     for total_frames in range(int(fmt.rate.rounded * 3600)):
         assert frame.total_frames == total_frames
 
         frame_string = str(frame)
+        frame_hmsf = frame.get_hmsf_values()
+        frame_hmsf_dict = frame.get_hmsf_dict()
 
-        frame2 = Frame(frame_format=fmt)
         frame2.set_total_frames(total_frames)
 
         assert str(frame2) == frame_string
 
-        frame3 = Frame(
-            frame_format=fmt,
-            hours=frame.hour.value,
-            minutes=frame.minute.value,
-            seconds=frame.second.value,
-            frames=frame.value,
-        )
+        f3_kw = frame_hmsf_dict.copy()
+        f3_kw['frame_format'] = fmt
+        frame3 = Frame(**f3_kw)
+
         assert frame3.total_frames == frame.total_frames == total_frames
         assert str(frame3) == frame_string
 
@@ -238,10 +239,9 @@ def test_timecode(frame_format):
         assert frame <= frame4
         assert frame4 > total_frames
 
-        assert frame4.hour.value == frame.hour.value + 2
-        assert frame4.minute.value == frame.minute.value
-        assert frame4.second.value == frame.second.value
-        assert frame4.value == frame.value
+        f4_hmsf = frame4.get_hmsf_values()
+        assert f4_hmsf[0] == frame_hmsf[0] + 2
+        assert f4_hmsf[1:] == frame_hmsf[1:]
 
         frame4 = frame4 - Frame(frame_format=fmt, hours=2).total_frames
         assert frame4 == frame
@@ -256,7 +256,7 @@ def test_timecode(frame_format):
         if frame_format.get('drop_frame'):
             h, m, s = [int(v) for v in frame_string.split(';')[0].split(':')]
             f = int(frame_string.split(';')[1])
-            assert [h, m, s, f] == frame.get_hmsf_values()
+            assert [h, m, s, f] == frame_hmsf
 
             drop_enabled = frame.second.value == 0 and frame.minute.value % 10 != 0
 
@@ -266,7 +266,7 @@ def test_timecode(frame_format):
                 assert frame.value >= 2
         else:
             hmsf = [int(v) for v in frame_string.split(':')]
-            assert hmsf == frame.get_hmsf_values()
+            assert hmsf == frame_hmsf
 
         frame_repr = repr(frame)
         assert frame_repr.split(': ')[0] == 'Frame'
