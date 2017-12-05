@@ -14,8 +14,10 @@ install:
   - pip install -U pytest pytest-cov pytest-xdist coveralls
   - pip install -U -r requirements.txt
   - python setup.py build_ext --force --inplace --define CYTHON_TRACE_NOGIL
+  - pip install -e .
 script:
-  - py.test -n=4 --cov-config .coveragerc --cov=pyltc
+  - py.test -n=auto --cov-config .coveragerc --cov=pyltc
+  - py.test -n=1 --cov-append --cov-config .coveragerc --cov=pyltc --xdist-disabled tests/test_audio.py
 after_success:
   - coverage combine
   - coveralls

@@ -1,6 +1,8 @@
 import time
 import numpy as np
+import pytest
 
+@pytest.mark.skipif("not config.getoption('--xdist-disabled')")
 def test_jackaudio(jack_listen_client, ltc_frame_format):
     import datetime
     from pyltc.tcgen import AudioGenerator

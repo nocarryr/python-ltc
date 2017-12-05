@@ -23,6 +23,9 @@ FRAME_FORMATS = [
     {'rate':24},
 ]
 
+def pytest_addoption(parser):
+    parser.addoption('--xdist-disabled', action='store_true')
+
 @pytest.fixture(params=FRAME_FORMATS)
 def frame_format(request):
     return request.param
