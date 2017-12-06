@@ -1,7 +1,6 @@
 import numbers
 import operator
 
-from pyltc.framerate import FrameRate, FrameFormat
 
 HMSF_KEYS = ('hours', 'minutes', 'seconds', 'frames')
 
@@ -32,9 +31,7 @@ cdef inline bint richcmp_helper(int compare, int op):
     elif op == 5: # >=
         return compare >= 0
 
-cdef class Counter(object):
-    cdef public object frame
-    cdef public int _value
+cdef class Counter:
     def __cinit__(self, **kwargs):
         self.frame = kwargs.get('frame')
         self._value = 0
@@ -62,13 +59,6 @@ cdef class Counter(object):
         self._value -= 1
 
 cdef class Frame(Counter):
-    cdef public object frame_format
-    cdef public Second second
-    cdef public Minute minute
-    cdef public Hour hour
-    cdef public list df_frame_numbers
-    cdef public int total_frames
-    cdef public bint drop_enabled
     def __cinit__(self, **kwargs):
         cdef object total_frames
         cdef dict hmsf
@@ -91,7 +81,10 @@ cdef class Frame(Counter):
             hmsf = hmsf_from_kwargs(kwargs)
             if len(hmsf):
                 self.set(**hmsf)
-        if not hasattr(self, 'total_frames'):
+                total_frames = self.total_frames
+            else:
+                total_frames = None
+        if total_frames is None:
             self.total_frames = self.calc_total_frames()
     @property
     def frame_times(self):

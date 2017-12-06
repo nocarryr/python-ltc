@@ -19,7 +19,7 @@ cdef inline bint richcmp_helper(int compare, int op):
 cdef dict FRAME_TIMES = {}
 cdef dict FRAME_RATE_REGISTRY = {}
 
-cdef class FrameRate(object):
+cdef class FrameRate:
     defaults = {
         24:(24, 1),
         25:(25, 1),
@@ -28,9 +28,6 @@ cdef class FrameRate(object):
         59.94:(60000, 1001),
         60:(60, 1),
     }
-    cdef int __numerator, __denom, __rounded
-    cdef object __value
-    cdef float __float_value
     def __cinit__(self, int numerator, int denom=1):
         self.__numerator = numerator
         self.__denom = denom
@@ -141,10 +138,7 @@ cdef class FrameRate(object):
             return str(self.numerator)
         return '{:05.2f}'.format(self.float_value)
 
-cdef class FrameFormat(object):
-    cdef public FrameRate rate
-    cdef public bint drop_frame
-    cdef public char *tc_fmt_str
+cdef class FrameFormat:
     def __cinit__(self, **kwargs):
         cdef object rate
         rate = kwargs.get('rate')
