@@ -45,30 +45,37 @@ cdef class _Resampler(object):
         return r
 
 cdef class _LTCDataBlockSampler(_Resampler):
-    def _iter_yvals(self):
-        cdef object yvals
-        if self.use_float_samples:
-            yvals = [-1., 1.]
-        else:
-            yvals = [-1, 1]
-        while True:
-            yield yvals[0]
-            yield yvals[1]
     cpdef generate_samples(self, data):
-        cdef np.ndarray a
-        cdef object y_iter, y, v
-        cdef int i, y_max
+        cdef np.ndarray a, yvals
+        cdef int y, v, i, y_max, yval_index
 
         a = np.zeros(160, dtype=self.dtype)
-        y_iter = self._iter_yvals()
-        y = next(y_iter)
+
+        if self.use_float_samples:
+            yvals = np.array([-1., 1.], dtype=self.dtype)
+        else:
+            yvals = np.array([-1, 1], dtype=self.dtype)
+        yval_index = 0
+        y = yvals[yval_index]
+
         i = 0
         for v in data:
             a[i] = y
             if v:
-                y = next(y_iter)
+                # Flip-flop for "True"
+                if yval_index == 1:
+                    yval_index = 0
+                else:
+                    yval_index = 1
+                y = yvals[yval_index]
             a[i+1] = y
-            y = next(y_iter)
+
+            # Flip-flop at end of bit
+            if yval_index == 1:
+                yval_index = 0
+            else:
+                yval_index = 1
+            y = yvals[yval_index]
             i += 2
         a = np.repeat(a, int(self.in_periods.size / 160))
         if not self.use_float_samples:
