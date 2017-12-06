@@ -23,9 +23,6 @@ class FrameResampler(Resampler):
         return self.data_block_sampler.generate_samples(data)
 
 class LTCDataBlockSampler(_LTCDataBlockSampler):
-    def __init__(self, **kwargs):
-        kwargs.setdefault('in_sample_rate', 160 * 10)
-        super(LTCDataBlockSampler, self).__init__(**kwargs)
     def write_wavefile(self, a, filename):
         wavfile.write(filename, int(self.out_sample_rate), a)
 

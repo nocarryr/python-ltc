@@ -45,6 +45,9 @@ cdef class _Resampler(object):
         return r
 
 cdef class _LTCDataBlockSampler(_Resampler):
+    def __init__(self, **kwargs):
+        kwargs.setdefault('in_sample_rate', 160 * 10)
+        super().__init__(**kwargs)
     cpdef generate_samples(self, data):
         cdef np.ndarray a, yvals
         cdef int y, v, i, y_max, yval_index
