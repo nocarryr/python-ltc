@@ -2,6 +2,7 @@
 source = pyltc
 parallel = True
 plugins = Cython.Coverage
+omit = *.pxd
 
 [report]
 exclude_lines =
