@@ -12,7 +12,7 @@ def bools_to_int(b):
 
 def test_datablock(ltc_frame_format):
     from pyltc.tcgen import Generator
-    from pyltc.frames import FrameFormat
+    from pyltc.framerate import FrameFormat
 
     fmt = FrameFormat(**ltc_frame_format)
 
@@ -66,7 +66,7 @@ def test_datablock(ltc_frame_format):
 
 def test_wave_write(ltc_frame_format, tmpdir):
     from pyltc.tcgen import AudioGenerator
-    from pyltc.frames import FrameFormat
+    from pyltc.framerate import FrameFormat
 
     fmt = FrameFormat(**ltc_frame_format)
 

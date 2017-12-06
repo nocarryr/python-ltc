@@ -5,7 +5,8 @@ import datetime
 import numpy as np
 
 from pyltc import fields
-from pyltc.frames import Frame, FrameFormat
+from pyltc.framerate import FrameFormat
+from pyltc.frames import Frame
 from pyltc.audioutils import FrameResampler
 
 

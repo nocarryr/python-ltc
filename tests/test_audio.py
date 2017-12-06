@@ -7,7 +7,7 @@ def test_jackaudio(jack_listen_client, ltc_frame_format):
     import datetime
     from pyltc.tcgen import AudioGenerator
     from pyltc.audio import pyjack_audio
-    from pyltc.frames import FrameFormat
+    from pyltc.framerate import FrameFormat
 
     fmt = FrameFormat(**ltc_frame_format)
 

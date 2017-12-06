@@ -3,7 +3,7 @@ from quicktions import Fraction
 import pytest
 
 def test_frame_rate():
-    from pyltc.frames import FrameRate
+    from pyltc.framerate import FrameRate
 
     with pytest.raises(Exception, message='FrameRate definition not found for 42'):
         frame_rate = FrameRate.from_float(42)
@@ -82,7 +82,7 @@ def test_frame_rate():
 
 
 def test_frame_rate_ops():
-    from pyltc.frames import FrameRate
+    from pyltc.framerate import FrameRate
 
     for flt_val, args in FrameRate.defaults.items():
         frame_rate = FrameRate.create(*args)
@@ -99,7 +99,8 @@ def test_frame_rate_ops():
                 assert flt_secs == fr_secs
 
 def test_2997_df():
-    from pyltc.frames import FrameFormat, Frame
+    from pyltc.framerate import FrameFormat
+    from pyltc.frames import Frame
     fmt = FrameFormat(rate=29.97, drop_frame=True)
     frame = Frame(frame_format=fmt, minutes=10)
 
@@ -142,7 +143,8 @@ def test_2997_df():
 
 
 def test_5994_df():
-    from pyltc.frames import FrameFormat, Frame
+    from pyltc.framerate import FrameFormat
+    from pyltc.frames import Frame
     fmt = FrameFormat(rate=59.94, drop_frame=True)
     frame = Frame(frame_format=fmt, minutes=10)
 
@@ -189,7 +191,8 @@ def test_5994_df():
 
 
 def test_timecode(frame_format):
-    from pyltc.frames import FrameFormat, Frame
+    from pyltc.framerate import FrameFormat
+    from pyltc.frames import Frame
 
     fmt = FrameFormat(**frame_format)
 
@@ -278,7 +281,8 @@ def test_timecode(frame_format):
 
 def test_dt():
     import datetime
-    from pyltc.frames import FrameFormat, Frame
+    from pyltc.framerate import FrameFormat
+    from pyltc.frames import Frame
     fmt = FrameFormat(rate=29.97, drop_frame=True)
     frame = Frame(frame_format=fmt)
     print(frame.frame_times)
@@ -302,7 +306,8 @@ def test_dt():
 
 def test_copy(frame_format):
     import datetime
-    from pyltc.frames import FrameFormat, Frame
+    from pyltc.framerate import FrameFormat
+    from pyltc.frames import Frame
     fmt = FrameFormat(**frame_format)
     frame = Frame(frame_format=fmt)
     dt = datetime.datetime.now()
@@ -312,7 +317,8 @@ def test_copy(frame_format):
     assert str(frame) == str(frame2)
 
 def test_decr(frame_format):
-    from pyltc.frames import FrameFormat, Frame
+    from pyltc.framerate import FrameFormat
+    from pyltc.frames import Frame
 
     fmt = FrameFormat(**frame_format)
     frame = Frame(frame_format=fmt)
