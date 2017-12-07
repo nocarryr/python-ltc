@@ -27,9 +27,9 @@ cdef class Field(object):
         while len(v) < self.bit_length:
             v.append(False)
         a[self.start_bit:self.start_bit+self.bit_length] = v
-    cpdef get_block_value(self):
+    cdef int get_block_value(self):
         return self.value << self.start_bit
-    cpdef get_value(self):
+    cdef int get_value(self):
         return self._value
     cpdef set_value(self, int value):
         self._value = value
@@ -41,49 +41,49 @@ cdef class Field(object):
 cdef class FrameUnits(Field):
     _start_bit = 0
     _bit_length = 4
-    cpdef get_value(self):
+    cdef int get_value(self):
         return self.generator.frame.value % 10
 
 cdef class FrameTens(Field):
     _start_bit = 8
     _bit_length = 2
-    cpdef get_value(self):
+    cdef int get_value(self):
         return self.generator.frame.value // 10
 
 cdef class SecondUnits(Field):
     _start_bit = 16
     _bit_length = 4
-    cpdef get_value(self):
+    cdef int get_value(self):
         return self.generator.frame.second.value % 10
 
 cdef class SecondTens(Field):
     _start_bit = 24
     _bit_length = 3
-    cpdef get_value(self):
+    cdef int get_value(self):
         return self.generator.frame.second.value // 10
 
 cdef class MinuteUnits(Field):
     _start_bit = 32
     _bit_length = 4
-    cpdef get_value(self):
+    cdef int get_value(self):
         return self.generator.frame.minute.value % 10
 
 cdef class MinuteTens(Field):
     _start_bit = 40
     _bit_length = 3
-    cpdef get_value(self):
+    cdef int get_value(self):
         return self.generator.frame.minute.value // 10
 
 cdef class HourUnits(Field):
     _start_bit = 48
     _bit_length = 4
-    cpdef get_value(self):
+    cdef int get_value(self):
         return self.generator.frame.hour.value % 10
 
 cdef class HourTens(Field):
     _start_bit = 56
     _bit_length = 2
-    cpdef get_value(self):
+    cdef int get_value(self):
         return self.generator.frame.hour.value // 10
 
 cdef class DropFlag(Field):
