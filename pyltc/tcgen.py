@@ -132,15 +132,19 @@ class AudioGenerator(Generator):
                 samples = samples[:-offset]
         return samples
     def generate_frames(self, num_frames, only_zero=False):
-        a = None
+        spf = int(self.samples_per_frame)
+        a = np.full((num_frames, spf+2), np.inf, dtype=self.dtype)
         for i in range(num_frames):
-            if a is None:
-                a = self.generate_frame(only_zero)
-            else:
-                a = np.concatenate((a, self.generate_frame(only_zero)))
+            _a = self.generate_frame(only_zero)
+            if _a.size > a.shape[1]:
+                infarr = np.full((num_frames, _a.size-a.shape[1]), np.inf, dtype=self.dtype)
+                a = np.append(a, infarr, axis=1)
+            a[i][:_a.size] = _a
             if only_zero is False:
                 self.incr_frame()
-        return a
+        a = a.flatten()
+        not_nan_ix = np.nonzero(np.logical_not(np.isinf(a)))
+        return a[not_nan_ix]
 
 
 class TimerThread(threading.Thread):
